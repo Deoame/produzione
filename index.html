@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Scheda di produzione — Scalzo</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#5E2747">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Produzione">
+<link rel="apple-touch-icon" href="icon-180.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --paper:#FAF7F1; --surface:#FFFFFF; --ink:#211C18; --ink-soft:#7A7066;
+    --line:#E6DFD3; --line-strong:#CDC3B4;
+    --plum:#5E2747; --plum-deep:#3F1A30;
+    --run:#B5471F; --done:#2E5E3A;
+    --radius:14px; --tap:54px;
+    --mono:ui-monospace,"SF Mono","Cascadia Mono","Roboto Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0}
+  body{font-family:var(--sans);color:var(--ink);background:var(--paper);line-height:1.45;-webkit-font-smoothing:antialiased;padding:0 0 40px}
+  .wrap{max-width:860px;margin:0 auto;padding:18px 16px}
+
+  header.top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:6px 2px 16px;border-bottom:2px solid var(--ink);margin-bottom:18px;flex-wrap:wrap}
+  .brand{font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:.74rem;color:var(--plum)}
+  .brand small{display:block;font-weight:600;letter-spacing:.02em;text-transform:none;color:var(--ink-soft);font-size:.92rem;margin-top:3px}
+  .meta{display:flex;gap:18px;align-items:baseline;font-size:.8rem;color:var(--ink-soft)}
+  .meta b{color:var(--ink);font-variant-numeric:tabular-nums}
+
+  label.fld{display:block;margin-bottom:14px}
+  label.fld .lab{display:block;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;margin-bottom:6px}
+  input,select{width:100%;font-family:inherit;font-size:1rem;color:var(--ink);background:var(--surface);border:1.5px solid var(--line-strong);border-radius:10px;padding:13px 14px;min-height:var(--tap);appearance:none;outline:none;transition:border-color .15s,box-shadow .15s}
+  input:focus,select:focus{border-color:var(--plum);box-shadow:0 0 0 3px rgba(94,39,71,.13)}
+  input::placeholder{color:#B8AE9F}
+  .denom input{font-size:1.35rem;font-weight:700;padding:15px 16px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+  section{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 16px;margin-bottom:18px}
+  .sec-head{display:flex;align-items:center;gap:10px;margin:-2px 0 14px}
+  .sec-head h2{margin:0;font-size:.82rem;letter-spacing:.13em;text-transform:uppercase;font-weight:800}
+  .sec-head .ix{font-family:var(--mono);font-size:.78rem;color:#fff;background:var(--plum);border-radius:6px;padding:3px 8px;font-weight:700}
+  .sec-head .rule{flex:1;height:1px;background:var(--line)}
+  .sec-note{font-size:.78rem;color:var(--ink-soft);margin:-6px 0 14px}
+
+  .timer{background:var(--plum-deep);color:#F3E9EE;border-radius:18px;padding:20px 18px 18px;margin-bottom:18px;position:relative;overflow:hidden}
+  .timer.is-running{background:#1f1a16;box-shadow:inset 0 0 0 2px var(--run)}
+  .timer.is-done{background:#15281b;box-shadow:inset 0 0 0 2px var(--done)}
+  .timer .status{display:inline-flex;align-items:center;gap:8px;font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;font-weight:800;opacity:.95;margin-bottom:6px}
+  .dot{width:9px;height:9px;border-radius:50%;background:#C9B7C2}
+  .is-running .dot{background:var(--run);animation:pulse 1.1s infinite}
+  .is-done .dot{background:var(--done)}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
+  .clock{font-family:var(--mono);font-size:3.6rem;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;margin:2px 0 4px}
+  @media(max-width:480px){.clock{font-size:2.9rem}}
+  .timer-sub{font-size:.82rem;opacity:.8}
+  .timer-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px;align-items:end}
+  .opbox .lab,.oreout .lab{font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;opacity:.7;font-weight:800;margin-bottom:7px}
+  .stepper{display:flex;align-items:center;background:rgba(255,255,255,.07);border-radius:12px;overflow:hidden;width:fit-content}
+  .stepper button{width:50px;height:50px;border:none;background:transparent;color:#fff;font-size:1.6rem;font-weight:600;cursor:pointer}
+  .stepper button:active{background:rgba(255,255,255,.16)}
+  .stepper .opval{min-width:42px;text-align:center;font-family:var(--mono);font-size:1.5rem;font-weight:700}
+  .oreout{text-align:right}
+  .oreout .big{font-family:var(--mono);font-size:2rem;font-weight:700;line-height:1}
+  .oreout .big span{font-size:.95rem;opacity:.7;font-weight:600}
+  .timer-actions{display:flex;gap:10px;margin-top:18px}
+  .btn{flex:1;min-height:var(--tap);border:none;border-radius:12px;font-family:inherit;font-size:1.02rem;font-weight:700;cursor:pointer;transition:transform .06s}
+  .btn:active{transform:translateY(1px)}
+  .btn-start{background:var(--run);color:#fff}
+  .btn-pause{background:rgba(255,255,255,.14);color:#fff}
+  .btn-resume{background:#fff;color:var(--ink)}
+  .btn-stop{background:rgba(255,255,255,.1);color:#F3DCD2;box-shadow:inset 0 0 0 1.5px rgba(243,220,210,.5)}
+  .btn[disabled]{opacity:.4;pointer-events:none}
+
+  /* cards for ingredients / formats */
+  .card{border:1.5px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;background:#FFFDFA;position:relative}
+  .card .cardnum{position:absolute;top:-9px;left:12px;font-family:var(--mono);font-size:.72rem;font-weight:700;color:#fff;background:var(--plum);border-radius:5px;padding:2px 7px}
+  .card .del{position:absolute;top:8px;right:8px;border:none;background:transparent;color:#C0B3A4;font-size:1.3rem;cursor:pointer;width:34px;height:34px;line-height:1}
+  .card .del:active{color:var(--run)}
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+  .fusto{margin-top:6px;border-top:1px dashed var(--line);padding-top:12px}
+  .fusto-total{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px}
+  .fusto-total .lab{font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);font-weight:800}
+  .fusto-total .val{font-family:var(--mono);font-weight:700}
+  .fusto-total .val b{font-size:1.5rem;color:var(--plum)}
+  .fusto-total .cnt{font-size:.72rem;color:var(--ink-soft);font-weight:600}
+  .fusto-add{display:grid;grid-template-columns:1fr auto auto;gap:8px}
+  .fusto-add input{min-height:48px}
+  .fusto-add .addq{min-height:48px;padding:0 16px;border:none;border-radius:10px;background:var(--plum);color:#fff;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap}
+  .fusto-add .addq:active{transform:translateY(1px)}
+  .fusto-add .undoq{min-height:48px;width:48px;border:1.5px solid var(--line-strong);border-radius:10px;background:#fff;color:var(--ink-soft);font-size:1.1rem;cursor:pointer}
+  .kg{font-size:.84rem;color:var(--ink-soft);font-family:var(--mono);margin-top:8px}
+  .kg b{color:var(--plum);font-size:1rem}
+
+  .addbtn{margin-top:6px;background:transparent;border:1.5px dashed var(--line-strong);color:var(--plum);font-weight:700;width:100%;min-height:50px;border-radius:11px;cursor:pointer;font-family:inherit;font-size:.92rem}
+  .addbtn:active{background:#F4EDE6}
+  label.fld.tight{margin-bottom:0}
+  .params{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+  .generate{position:sticky;bottom:0;padding:14px 16px;background:linear-gradient(transparent,var(--paper) 30%);margin:0 -16px -40px}
+  .gen-btn{width:100%;min-height:60px;background:var(--plum);color:#fff;border:none;border-radius:14px;font-family:inherit;font-size:1.1rem;font-weight:800;cursor:pointer;box-shadow:0 6px 20px rgba(94,39,71,.28)}
+  .gen-btn:active{transform:translateY(1px)}
+  .hint{font-size:.74rem;color:var(--ink-soft);text-align:center;margin-top:9px}
+  .resume{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:#FBEFD9;border:1.5px solid #E3C892;border-radius:12px;padding:12px 14px;margin-bottom:16px}
+  .resume-txt{font-size:.9rem;color:#6B4E16}
+  .resume-btn{display:flex;gap:8px}
+  .resume-btn button{min-height:44px;padding:0 18px;border-radius:9px;border:none;font-family:inherit;font-weight:700;cursor:pointer}
+  .r-yes{background:var(--plum);color:#fff}
+  .r-no{background:#fff;color:var(--ink-soft);border:1.5px solid var(--line-strong)}
+  .pf-prod-row{display:grid;grid-template-columns:1fr 96px;gap:10px;margin-bottom:6px}
+  .newhint{font-size:.7rem;color:var(--ink-soft);margin:0 0 10px}
+  .pf-mode{display:flex;gap:8px;margin-bottom:10px}
+  .pf-mode button{flex:1;min-height:44px;border:1.5px solid var(--line-strong);background:#fff;border-radius:9px;font-family:inherit;font-weight:700;color:var(--ink-soft);cursor:pointer;font-size:.82rem}
+  .pf-mode button.on{background:var(--plum);color:#fff;border-color:var(--plum)}
+  .peso-row{display:grid;grid-template-columns:1fr 84px;gap:8px;margin-bottom:10px}
+  .card.mode-peso .only-vasi{display:none}
+  .card:not(.mode-peso) .only-peso{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">Scheda di lavorazione<small>Rintracciabilità di produzione</small></div>
+    <div class="meta">
+      <span>Data <b id="oggi">—</b></span>
+      <span>Progr. <b id="progLbl">—</b></span>
+    </div>
+  </header>
+
+  <label class="fld denom"><span class="lab">Denominazione prodotto</span>
+    <input id="denom" placeholder="es. Crema vulcanica" autocomplete="off"></label>
+  <div class="row2" style="margin-bottom:4px">
+    <label class="fld"><span class="lab">N. progressivo</span><input id="prog" type="number" inputmode="numeric" placeholder="es. 101"></label>
+    <label class="fld"><span class="lab">Data produzione</span><input id="data" type="date"></label>
+  </div>
+
+  <div class="timer" id="timer">
+    <div class="status"><span class="dot"></span><span id="statusTxt">Pronto</span></div>
+    <div class="clock" id="clock">00:00:00</div>
+    <div class="timer-sub" id="timerSub">Premi avvia quando inizia la lavorazione</div>
+    <div class="timer-grid">
+      <div class="opbox">
+        <div class="lab">Operatori</div>
+        <div class="stepper">
+          <button type="button" onclick="changeOp(-1)">−</button>
+          <div class="opval" id="opVal">1</div>
+          <button type="button" onclick="changeOp(1)">+</button>
+        </div>
+      </div>
+      <div class="oreout">
+        <div class="lab">Ore lavorate (ore-uomo)</div>
+        <div class="big" id="oreUomo">0.00<span> h</span></div>
+      </div>
+    </div>
+    <div class="timer-actions">
+      <button class="btn btn-start" id="bMain" onclick="mainAction()">Avvia produzione</button>
+      <button class="btn btn-stop" id="bStop" onclick="stop()" disabled>Fine</button>
+    </div>
+  </div>
+
+  <section>
+    <div class="sec-head"><span class="ix">A</span><h2>Materie prime utilizzate</h2><span class="rule"></span></div>
+    <div class="sec-note">Registra ogni quantità pesata: l'app somma i totali. Lotto diverso → aggiungi una nuova materia prima.</div>
+    <div id="mpRows"></div>
+    <button class="addbtn" type="button" onclick="addMP()">+ Aggiungi materia prima</button>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="ix">B</span><h2>Prodotto finito</h2><span class="rule"></span></div>
+    <div class="sec-note">Aggiungi i vasi riempiti man mano: i kg netti si calcolano da soli.</div>
+    <div id="pfRows"></div>
+    <button class="addbtn" type="button" onclick="addPF()">+ Aggiungi formato</button>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="ix">C</span><h2>Parametri di processo</h2><span class="rule"></span></div>
+    <div class="params">
+      <label class="fld tight"><span class="lab">pH</span><input id="ph" inputmode="decimal" placeholder="es. 3.59"></label>
+      <label class="fld tight"><span class="lab">Temp. pastorizzazione</span><input id="temp" placeholder="es. 102 °C" value="102 °C"></label>
+    </div>
+  </section>
+
+  <div class="generate">
+    <button class="gen-btn" onclick="genExcel()">Genera scheda Excel</button>
+    <div class="hint" id="hint">Si scarica il file pronto da salvare nella cartella di produzione</div>
+  </div>
+</div>
+
+<script>
+window.ANAG={"prodotti": [{"n": "Aglio olio e peperoncino", "c": "FB"}, {"n": "Aglio secco", "c": "KAS"}, {"n": "Alloro", "c": "AL"}, {"n": "Basilico fresco per essiccazione", "c": "PFS"}, {"n": "Boccone del tamarro", "c": "OB"}, {"n": "Bruschetta alle undici erbe", "c": "EC"}, {"n": "Bruschetta del fornaio", "c": "BR"}, {"n": "Calabrotti al tonno", "c": "CB"}, {"n": "Capperi al sale", "c": "US"}, {"n": "Castagne al mosto cotto", "c": "CM"}, {"n": "Castagne essiccate", "c": "FSE"}, {"n": "Castagne intere con Nduja", "c": "CNJ"}, {"n": "Castagne ubbriache", "c": "UB"}, {"n": "Ceraselle piccanti sott'olio", "c": "LE"}, {"n": "Cicoria e peperoncino", "c": "SV"}, {"n": "Cicoria selvatica al chilogrammo", "c": "CX"}, {"n": "Cicoria selvatica in vasi sott'olio", "c": "CX"}, {"n": "Cicoria sott'olio in olio di semi", "c": "CXS"}, {"n": "Cicorie in salamoia", "c": "X"}, {"n": "Cicorie per pizza", "c": "PX"}, {"n": "Cicorie selvatiche e patate IGP", "c": "PTCS"}, {"n": "Cime di rape", "c": "RS"}, {"n": "Cipolla caramellata IGP di Tropea", "c": "FCC"}, {"n": "Composta di cipolla IGP", "c": "PI"}, {"n": "Composta di peperoncino", "c": "CP"}, {"n": "Condiarrosto dose", "c": "ON"}, {"n": "Condimento al peper. habanero sfuso", "c": "HN"}, {"n": "Condimento al peperoncino", "c": "NS"}, {"n": "Condimento di nonna bianca (crema rina)", "c": "VS"}, {"n": "Condispaghetti alle erbe", "c": "CG"}, {"n": "Confettura di castagne", "c": "CA"}, {"n": "Confettura di castagne al cioccolato", "c": "CI"}, {"n": "Confettura di fichi", "c": "HI"}, {"n": "Confettura di mele cotogne", "c": "MT"}, {"n": "Confettura di mirtilli neri", "c": "QR"}, {"n": "Confettura di more", "c": "M"}, {"n": "Confettura di sambuco", "c": "SB"}, {"n": "Confettura di uva fragola", "c": "UG"}, {"n": "Confettura di uva fragolia al chilogrammo", "c": "UG"}, {"n": "Crema di carciofi", "c": "CF"}, {"n": "Crema di cipolle", "c": "CC"}, {"n": "Crema di habanero", "c": "NA"}, {"n": "Crema di olive al peperoncino", "c": "CO"}, {"n": "Crema di pomodori secchi", "c": "PS"}, {"n": "Crema di rape", "c": "CR"}, {"n": "Crema di zucca", "c": "OZ"}, {"n": "Crema vulcanica", "c": "CV"}, {"n": "Crema vulcanica tabasco", "c": "TV"}, {"n": "Don primo", "c": "DP"}, {"n": "Filetti di cipolle IGP", "c": "FCP"}, {"n": "Filetti di melanzane", "c": "ZB"}, {"n": "Filetti di melanzane in olio di girasole", "c": "ZNS"}, {"n": "Filetti di melanzane in vaso", "c": "ZN"}, {"n": "Funghi misti", "c": "MC"}, {"n": "Funghi misti in olio di semi di girasole", "c": "MCS"}, {"n": "Funghi porcini sott'olio", "c": "HR"}, {"n": "Funghi rositi sott'olio", "c": "OH"}, {"n": "Fuoco di Calabria", "c": "FC"}, {"n": "Insalata d'autunno", "c": "UD"}, {"n": "La tarantella", "c": "TL"}, {"n": "Marmellata di arance", "c": "EA"}, {"n": "Marmellata di arance amare", "c": "NGC"}, {"n": "Marmellata di bergamotto", "c": "B"}, {"n": "Marmellata di cedro", "c": "CD"}, {"n": "Marmellata di limoni", "c": "LN"}, {"n": "Marmellata di mandarini", "c": "MM"}, {"n": "Melanzane a fette secche", "c": "ZN -ESS"}, {"n": "Melanzane grigliate", "c": "MA"}, {"n": "Nduja in vaso", "c": "NDJ"}, {"n": "Olive verdi schiacciate in olio di semi di girasole", "c": "OTS"}, {"n": "Olive verdi schiacciate in olio extra vergine", "c": "OT"}, {"n": "Origano per mazzetti", "c": "OA"}, {"n": "Origano sgranato", "c": "SIS"}, {"n": "Passata di pomodori", "c": "SU"}, {"n": "Peperoncini ripieni alla Nduja", "c": "NJ"}, {"n": "Peperoncini semplici", "c": "LI"}, {"n": "Peperoncino fresco da salamoiare", "c": "P AMANDO, P BARBAR"}, {"n": "Peperoncino piccante per essiccare", "c": "GC"}, {"n": "Peperoni dolci in salamoia", "c": "PDS"}, {"n": "Pesto genuino al basilico", "c": "G"}, {"n": "Pomodori essiccati grigliati", "c": "CHG"}, {"n": "Pomodori in olio di girasole", "c": "CHS"}, {"n": "Pomodori secchi al sale", "c": "FR"}, {"n": "Pomodori secchi sott'olio", "c": "CH"}, {"n": "Rape in salamoia", "c": "R"}, {"n": "Rosmarino", "c": "RO"}, {"n": "Rosso forte", "c": "RF"}, {"n": "Salsa di peperoncino piccante vaso da 1 kg", "c": "PU"}, {"n": "Salsa di peperone", "c": "HD"}, {"n": "Salsa saracena", "c": "SS"}, {"n": "Salvia essiccata", "c": "SSE"}, {"n": "Spaghettata di mezzanotte", "c": "TA"}, {"n": "Stuzzico rustico", "c": "SK"}, {"n": "Sugo al basilico", "c": "SO"}, {"n": "Sugo al peperoncino", "c": "UF"}, {"n": "Sugo alla cipola rossa di Tropea IGP", "c": "LP"}, {"n": "Sugo alla forestale", "c": "EF"}, {"n": "Sugo di pomodoro alla Nduja", "c": "CZ"}, {"n": "Sugo di pomodoro alle erbe", "c": "SE"}, {"n": "Zucchine essiccate", "c": "ZO"}], "formati": {"Aglio olio e peperoncino": [{"f": "sfuso", "p": null, "bulk": true}, {"f": "busta", "p": null, "bulk": true}], "Aglio secco": [{"f": "sfuso", "p": null, "bulk": true}, {"f": "busta", "p": null, "bulk": true}], "Alloro": [{"f": "sfuso", "p": null, "bulk": true}, {"f": "busta", "p": null, "bulk": true}], "Basilico fresco per essiccazione": [{"f": "sfuso", "p": null, "bulk": true}, {"f": "busta", "p": null, "bulk": true}], "Boccone del tamarro": [{"f": 314, "p": 280}], "Bruschetta alle undici erbe": [{"f": "sfuso", "p": null, "bulk": true}, {"f": "busta", "p": null, "bulk": true}], "Bruschetta del fornaio": [{"f": "sfuso", "p": null, "bulk": true}, {"f": "busta", "p": null, "bulk": true}], "Calabrotti al tonno": [{"f": 212, "p": 190}], "Capperi al sale": [{"f": 212, "p": 150}], "Castagne al mosto cotto": [{"f": 212, "p": 190}], "Castagne essiccate": [{"f": "secchielli", "p": null, "bulk": true}, {"f": "sfuso", "p": null, "bulk": true}, {"f": "busta", "p": null, "bulk": true}], "Castagne intere con Nduja": [{"f": 212, "p": 190}], "Castagne ubbriache": [{"f": 212, "p": 190}], "Ceraselle piccanti sott'olio": [{"f": 212, "p": 180}], "Cicoria e peperoncino": [{"f": 212, "p": 190}], "Cicoria selvatica al chilogrammo": [{"f": "Sfuso", "p": null, "bulk": true}], "Cicoria selvatica in vasi sott'olio": [{"f": 212, "p": 190}, {"f": 314, "p": 280}, {"f": 1062, "p": 1000}], "Cicoria sott'olio in olio di semi": [{"f": 1062, "p": 1000}], "Cicorie in salamoia": [{"f": "Fusto 220 lt", "p": null, "bulk": true}, {"f": "Fusto 80 lt", "p": null, "bulk": true}, {"f": "Secchiello", "p": null, "bulk": true}, {"f": "Altri formati", "p": null, "bulk": true}], "Cicorie per pizza": [{"f": 1062, "p": 1000}], "Cicorie selvatiche e patate IGP": [{"f": 1062, "p": 1000}], "Cime di rape": [{"f": 40, "p": 30}, {"f": 106, "p": 90}, {"f": 212, "p": 190}, {"f": 314, "p": 280}, {"f": 1062, "p": 1000}], "Cipolla caramellata IGP di Tropea": [{"f": 212, "p": 190}, {"f": 580, "p": 540}], "Composta di cipolla IGP": [{"f": 40, "p": 40}, {"f": 106, "p": 115}, {"f": 212, "p": 230}], "Composta di peperoncino": [{"f": 40, "p": 40}, {"f": 106, "p": 115}, {"f": 212, "p": 230}, {"f": 314, "p": 340}, {"f": 1060, "p": 1250}], "Condiarrosto dose": [{"f": "sfuso", "p": null, "bulk": true}, {"f": "busta", "p": null, "bulk": true}], "Condimento al peper. habanero sfuso": [{"f": "sfuso", "p": null, "bulk": true}], "Condimento al peperoncino": [{"f": "Sfuso", "p": null, "bulk": true}], "Condimento di nonna bianca (crema rina)": [{"f": 106, "p": 90}, {"f": 212, "p": 190}], "Condispaghetti alle erbe": [{"f": 212, "p": 190}], "Confettura di castagne": [{"f": 212, "p": 230}, {"f": 1062, "p": 1250}], "Confettura di castagne al cioccolato": [{"f": 106, "p": 115}, {"f": 212, "p": 230}], "Confettura di fichi": [{"f": 40, "p": 40}, {"f": 106, "p": 115}, {"f": 212, "p": 230}], "Confettura di mele cotogne": [{"f": 212, "p": 230}], "Confettura di mirtilli neri": [{"f": 212, "p": 230}], "Confettura di more": [{"f": 40, "p": 40}, {"f": 212, "p": 230}], "Confettura di sambuco": [{"f": 212, "p": 230}], "Confettura di uva fragola": [{"f": 40, "p": 40}, {"f": 106, "p": 115}, {"f": 212, "p": 230}, {"f": 314, "p": 340}, {"f": 1062, "p": 1250}], "Confettura di uva fragolia al chilogrammo": [{"f": 40, "p": 40}, {"f": 106, "p": 115}, {"f": 212, "p": 230}, {"f": 314, "p": 340}, {"f": 1062, "p": 1250}], "Crema di carciofi": [{"f": 212, "p": 190}, {"f": 1062, "p": 1000}], "Crema di cipolle": [{"f": 212, "p": 190}], "Crema di habanero": [{"f": 106, "p": 90}], "Crema di olive al peperoncino": [{"f": 212, "p": 190}, {"f": 314, "p": 280}], "Crema di pomodori secchi": [{"f": 106, "p": 90}, {"f": 212, "p": 190}], "Crema di rape": [{"f": 212, "p": 190}], "Crema di zucca": [{"f": 1062, "p": 1000}], "Crema vulcanica": [{"f": 40, "p": 30}, {"f": 106, "p": 90}, {"f": 212, "p": 190}, {"f": 314, "p": 280}, {"f": 1062, "p": 1000}, {"f": 3100, "p": 3000}], "Crema vulcanica tabasco": [{"f": 212, "p": 190}], "Don primo": [{"f": 314, "p": 280}], "Filetti di cipolle IGP": [{"f": 314, "p": 280}, {"f": 1062, "p": 1000}], "Filetti di melanzane": [{"f": "Fusto 220 lt", "p": null, "bulk": true}, {"f": "fusto 80 lt", "p": null, "bulk": true}, {"f": "fusto", "p": null, "bulk": true}], "Filetti di melanzane in olio di girasole": [{"f": "Busta sottovuoto", "p": null, "bulk": true}], "Filetti di melanzane in vaso": [{"f": 212, "p": 190}, {"f": 314, "p": 280}, {"f": 580, "p": 540}, {"f": 1062, "p": 1000}, {"f": "Sfuso", "p": null, "bulk": true}], "Funghi misti": [{"f": 314, "p": 280}, {"f": 580, "p": 540}], "Funghi misti in olio di semi di girasole": [{"f": 3100, "p": 2950}], "Funghi porcini sott'olio": [{"f": 314, "p": 280}, {"f": 580, "p": 540}], "Funghi rositi sott'olio": [{"f": 314, "p": 280}], "Fuoco di Calabria": [{"f": 40, "p": 30}, {"f": 106, "p": 90}, {"f": 212, "p": 190}, {"f": 314, "p": 280}, {"f": 1062, "p": 1000}], "Insalata d'autunno": [{"f": 314, "p": 280}, {"f": 580, "p": 540}], "La tarantella": [{"f": 106, "p": 90}, {"f": 212, "p": 190}], "Marmellata di arance": [{"f": 40, "p": 40}, {"f": 106, "p": 115}, {"f": 212, "p": 230}, {"f": 314, "p": 280}, {"f": 1062, "p": 1250}], "Marmellata di arance amare": [{"f": 212, "p": 230}], "Marmellata di bergamotto": [{"f": 40, "p": 40}, {"f": 106, "p": 115}, {"f": 212, "p": 230}, {"f": 314, "p": 340}], "Marmellata di cedro": [{"f": 106, "p": 115}, {"f": 212, "p": 230}, {"f": 314, "p": 340}], "Marmellata di limoni": [{"f": 106, "p": 115}, {"f": 212, "p": 230}, {"f": 314, "p": 340}, {"f": 1062, "p": 1250}], "Marmellata di mandarini": [{"f": 106, "p": 115}, {"f": 212, "p": 230}, {"f": 314, "p": 340}], "Melanzane a fette secche": [{"f": "sfuso", "p": null, "bulk": true}, {"f": "busta", "p": null, "bulk": true}], "Melanzane grigliate": [{"f": 212, "p": 190}], "Nduja in vaso": [{"f": 212, "p": 190}], "Olive verdi schiacciate in olio di semi di girasole": [{"f": 1062, "p": 1000}], "Olive verdi schiacciate in olio extra vergine": [{"f": 212, "p": 190}, {"f": 314, "p": 280}], "Origano per mazzetti": [{"f": "sfuso", "p": null, "bulk": true}], "Origano sgranato": [{"f": "sfuso", "p": null, "bulk": true}], "Passata di pomodori": [{"f": 370, "p": 300}, {"f": 720, "p": 700}], "Peperoncini ripieni alla Nduja": [{"f": 212, "p": 190}], "Peperoncini semplici": [{"f": 212, "p": 190}], "Peperoncino fresco da salamoiare": [{"f": "Fusto 220 lt", "p": null, "bulk": true}, {"f": "fusto 80 lt", "p": null, "bulk": true}, {"f": "fusto", "p": null, "bulk": true}], "Peperoncino piccante per essiccare": [{"f": "sfuso", "p": null, "bulk": true}], "Peperoni dolci in salamoia": [{"f": "Fusto 220 lt", "p": null, "bulk": true}, {"f": "fusto 80 lt", "p": null, "bulk": true}, {"f": "fusto", "p": null, "bulk": true}], "Pesto genuino al basilico": [{"f": 106, "p": 90}, {"f": 212, "p": 190}, {"f": 314, "p": 280}], "Pomodori essiccati grigliati": [{"f": 212, "p": 190}], "Pomodori in olio di girasole": [{"f": 1062, "p": 1000}], "Pomodori secchi al sale": [{"f": "sfuso", "p": null, "bulk": true}], "Pomodori secchi sott'olio": [{"f": 212, "p": 190}, {"f": 314, "p": 280}, {"f": 580, "p": 540}], "Rape in salamoia": [{"f": "Fusto 220 lt", "p": null, "bulk": true}, {"f": "fusto 80 lt", "p": null, "bulk": true}, {"f": "fusto", "p": null, "bulk": true}], "Rosmarino": [{"f": "Sfuso", "p": null, "bulk": true}], "Rosso forte": [{"f": 212, "p": 190}], "Salsa di peperoncino piccante vaso da 1 kg": [{"f": 212, "p": null}, {"f": 1000, "p": null}, {"f": 1062, "p": 1000}], "Salsa di peperone": [{"f": 1062, "p": 1000}], "Salsa saracena": [{"f": 106, "p": 90}, {"f": 212, "p": 190}, {"f": 580, "p": 540}, {"f": "sfuso", "p": null, "bulk": true}], "Salvia essiccata": [{"f": "sfuso", "p": null, "bulk": true}, {"f": "busta", "p": null, "bulk": true}], "Spaghettata di mezzanotte": [{"f": "sfuso", "p": null, "bulk": true}, {"f": "busta", "p": null, "bulk": true}], "Stuzzico rustico": [{"f": 212, "p": 190}, {"f": 1062, "p": 1000}], "Sugo al basilico": [{"f": 314, "p": 280}], "Sugo al peperoncino": [{"f": 314, "p": 280}], "Sugo alla cipola rossa di Tropea IGP": [{"f": 314, "p": 280}], "Sugo alla forestale": [{"f": 314, "p": 280}], "Sugo di pomodoro alla Nduja": [{"f": 106, "p": 90}, {"f": 314, "p": 280}], "Sugo di pomodoro alle erbe": [{"f": 212, "p": 190}], "Zucchine essiccate": [{"f": "sfuso", "p": null, "bulk": true}, {"f": "busta", "p": null, "bulk": true}]}, "fornitori": ["Arpaia S.P.A.", "Az. Scalzo di Garofalo C.", "Azienda la Face R,C,", "Calabria Sale", "Cavatoio Paolo S.R.L. Sciacca", "Centrosud Vetro", "Chiarolla", "Chiellino Crotone", "Cipolla IGP Tropea S,creoce", "Consorzio del Cedro S,maria", "Cooperativa del Savuto", "F.lli Portaro", "Giuseppe Paterno", "HO RE CA Service Tavella", "I Casali Postaglionati", "Iervasi", "LBF Group Italia S.R.L.", "Lupak", "Morabito", "Moretti", "Morina Domenico Sicilia", "Oleficio Grassi KR", "Oleificio Torchia", "Panificio Melobuono", "Perrone", "Priviteria Soc.coop Agricola", "Spadafora", "Suicra'", "Tifata Plastic", "Vetreria Belcaro", "Vetreria Scarola Krotone", "Vivaio Santa Croce Domenico"], "materie": ["Bottiglia ml 370", "Bottiglia ml 720", "Buste sottovuoto", "Fusti per alimenti", "Secchielli per alimenti", "Tappo TO 110", "Tappo TO 212", "Tappo TO 40", "Tappo TO 41", "Tappo TO 43", "Tappo TO 48", "Tappo TO 53", "Tappo TO 63", "Tappo TO 63 nero", "Tappo TO 63 oro rosso", "Tappo TO 70", "Tappo TO 72", "Tappo TO 80", "Tappo TO 82", "Vaso ml 106", "Vaso ml 1062", "Vaso ml 115", "Vaso ml 212", "Vaso ml 3100", "Vaso ml 314", "Vaso ml 40", "Vaso ml 540", "Vaso ml 580", "Vaso ml 82", "Acciughe", "Aceto", "Aceto bianco", "Aceto rosso", "Acqua sterilizzata", "Aglio", "Aglio a crema", "Aglio fresco", "Aglio secco", "Agrumi", "Alloro", "Alloro essiccato", "Alloro fresco", "Anice", "Arance", "Arance a marmellata", "Barbabietola rossa", "Basilico", "Basilico fresco", "Basilico secco", "Bergamotto", "Brandy", "Cacao amaro", "Caffe crudo : india", "Caffe crudo : java", "Cannella", "Capperi", "Carciofi fondelli", "Carciofi strizzati", "Castagne 1a scelta", "Castagne essiccate pulite", "Castagne fresche", "Castagne secche", "Castagne seconda scelta", "Cedro", "Cedro fresco", "Ceraselle", "Chiodi di garofano", "Cicoria", "Cicoria fresca", "Cicoria fresca scelta", "Cicoria in salamoia", "Cicoria strizzata", "Cipolla", "Cipolla IGP Tropea", "Cipolla secca", "Cipolle rosse di Tropea fresche", "Cipolle scottate", "Crema di aglio", "Fette di melanzane", "Fichi freschi", "Filetti di melanzane strizzate", "Finocchietto fresco", "Finocchio", "Formaggio pecorino", "Funghi pinnelle", "Funghi porcini freschi", "Funghi rositi lactarius deliciosus", "Funghi rositi lactarius deliciosus tagliati", "Funghi tricoloma terrum", "Limoni", "Mandarini freschi", "Mandorle", "Mandorle pelate", "Melanzane", "Melanzane a fette strizzate", "Melanzane a filetti", "Melanzane fresche", "Melanzane pressate", "Melanzane strizzate", "Melanzane tagliate per lavorazione", "Mele cotogne fresche", "Menta fresca", "Menta secca", "Mirtilli freschi", "More fresche", "Mosto cotto", "Nduja", "Noce moscata", "Olio al basilico", "Olio alla menta", "Olio di menta", "Olio di semi di girasole", "Olio extra vergine", "Olio extra vergine di oliva", "Olive strizzate", "Olive verdi", "Origano", "Origano fresco a fasci per essic.", "Origano secco", "Origano secco per mazzetti", "Origano secco sgranato", "Origano sgranato", "Pane grattuggiato", "Passata di peperone", "Passata di pomodoro", "Passato di more", "Passato di uva", "Patate fresche IGP", "Pepe nero", "Peperoncini dolci", "Peperoncino", "Peperoncino a scaglie", "Peperoncino amando fresco .", "Peperoncino cotto passato", "Peperoncino fresco", "Peperoncino fresco barbar.", "Peperoncino in salamoia", "Peperoncino in salamoia tabasco", "Peperoncino intero", "Peperoncino intero fresco", "Peperoncino piccante", "Peperoncino piccante passato", "Peperoncino pressato", "Peperoncino salamoia kg", "Peperoncino secco", "Peperoncino secco intero", "Peperoncino strizzato", "Peperoncino tabasco", "Peperone dolce", "Peperone dolce fresco", "Peperone dolce san salvator", "Peperone dolce strizzato", "Peperone in salamoia", "Peperone passato kg", "Peperone piccante salsa", "Peperone san salvador", "Polpa di peperone", "Pomodori", "Pomodori essiccati", "Pomodori freschi", "Pomodori secchi", "Porcini secchi", "Preparazione composta e riempi", "Prezzemolo", "Rapa fresca", "Rape lav.strizzate", "Rosmarino", "Rosmarino essiccato", "Rosmarino fresco", "Rum", "Sale", "Salsa di peperoncino piccante", "Salsa di peperone", "Salsa piccante", "Salvia essiccata", "Salvia fresca", "Sambuco fresco", "Semi di peperoncini piccanti", "Succo di uva fragola", "Tonno a filetti", "Uva fragola", "Uva fragola fresca a grappoli", "Zucca fresca", "Zucchero", "Zucchine a filetti", "Zucchine fresche", "Zucchine secche"]};
+const today=new Date(), pad=n=>String(n).padStart(2,'0'), $=id=>document.getElementById(id);
+$('data').value=today.toISOString().slice(0,10);
+$('oggi').textContent=pad(today.getDate())+'/'+pad(today.getMonth()+1)+'/'+today.getFullYear();
+/* prefisso lotto = giorno dell'anno / anno(2 cifre) / (codice prodotto da completare) */
+function scadDefault(){const v=$('data').value;if(!v)return'';const[y,m,d]=v.split('-').map(Number);
+  const dt=new Date(y+2,m-1,d);return dt.getFullYear()+'-'+pad(dt.getMonth()+1)+'-'+pad(dt.getDate());}
+function lottoPrefix(){const v=$('data').value;if(!v)return'';const[y,m,d]=v.split('-').map(Number);
+  const doy=Math.floor((new Date(y,m-1,d)-new Date(y,0,0))/86400000);return `${doy}/${String(y).slice(-2)}/`;}
+/* se cambia la data, aggiorna i lotti ancora al solo prefisso */
+$('data').addEventListener('change',()=>document.querySelectorAll('#pfRows .card .pf-scad').forEach(s=>{if(!s.value)s.value=scadDefault();}));
+$('data').addEventListener('change',()=>document.querySelectorAll('#pfRows .pf-lotto').forEach(inp=>{
+  if(inp.value===''||/^\d+\/\d+\/$/.test(inp.value))inp.value=lottoPrefix();}));
+$('prog').addEventListener('input',e=>$('progLbl').textContent=e.target.value||'—');
+
+/* timer */
+let state='idle',accMs=0,segStart=null,operators=1,tick=null;
+function fmt(ms){const t=Math.floor(ms/1000);return pad(Math.floor(t/3600))+':'+pad(Math.floor(t%3600/60))+':'+pad(t%60);}
+function totalMs(){return accMs+(state==='running'?Date.now()-segStart:0);}
+function oreUomo(){return (totalMs()/3600000)*operators;}
+function render(){
+  $('clock').textContent=fmt(totalMs());
+  $('oreUomo').innerHTML=oreUomo().toFixed(2)+'<span> h</span>';
+  const tm=$('timer');tm.classList.toggle('is-running',state==='running');tm.classList.toggle('is-done',state==='done');
+  const main=$('bMain'),sub=$('timerSub'),st=$('statusTxt');main.className='btn';$('bStop').disabled=(state==='idle'||state==='done');
+  if(state==='idle'){st.textContent='Pronto';sub.textContent='Premi avvia quando inizia la lavorazione';main.classList.add('btn-start');main.textContent='Avvia produzione';}
+  if(state==='running'){st.textContent='In corso';sub.textContent='Il tempo viene registrato automaticamente';main.classList.add('btn-pause');main.textContent='Pausa';}
+  if(state==='paused'){st.textContent='In pausa';sub.textContent='Riprendi per continuare a contare il tempo';main.classList.add('btn-resume');main.textContent='Riprendi';}
+  if(state==='done'){st.textContent='Conclusa';sub.textContent='Tempo bloccato — pronto per la scheda';main.classList.add('btn-start');main.textContent='Riavvia';}
+}
+function loop(){clearInterval(tick);tick=setInterval(render,250);}
+function mainAction(){
+  if(state==='idle'||state==='done'){accMs=0;segStart=Date.now();state='running';loop();}
+  else if(state==='running'){accMs+=Date.now()-segStart;segStart=null;state='paused';clearInterval(tick);}
+  else if(state==='paused'){segStart=Date.now();state='running';loop();}
+  render();saveState();
+}
+function stop(){if(state==='running'){accMs+=Date.now()-segStart;segStart=null;}state='done';clearInterval(tick);render();saveState();}
+function changeOp(d){operators=Math.max(1,operators+d);$('opVal').textContent=operators;render();saveState();}
+
+/* materie prime — accumulo per fusto */
+let mpId=0;
+function addMP(data){
+  mpId++;const id=mpId;
+  const c=document.createElement('div');c.className='card';c.dataset.fusti='[]';c.id='mp'+id;
+  c.innerHTML=`
+    <span class="cardnum"></span><button class="del" onclick="delCard(this)">×</button>
+    <label class="fld tight" style="margin-bottom:10px"><span class="lab">Prodotto</span><input class="mp-prod" list="dlMaterie" placeholder="es. peperoncino"></label>
+    <div class="g2" style="margin-bottom:10px">
+      <label class="fld tight"><span class="lab">Fornitore</span><input class="mp-forn" list="dlFornitori" placeholder="es. az. Scalzo"></label>
+      <label class="fld tight"><span class="lab">Lotto ingresso</span><input class="mp-lotto" placeholder="es. 185/26"></label>
+    </div>
+    <label class="fld tight" style="margin-bottom:10px"><span class="lab">Unità di misura</span>
+      <select class="mp-um"><option>kg</option><option>pz</option><option>l</option><option>g</option></select></label>
+    <div class="fusto">
+      <div class="fusto-total"><span class="lab">Totale</span>
+        <span class="val"><b class="mp-tot">0</b> <span class="mp-umlbl">kg</span> <span class="cnt mp-cnt"></span></span></div>
+      <div class="fusto-add">
+        <input class="mp-add" inputmode="decimal" placeholder="quantità pesata">
+        <button class="addq" onclick="addFusto('mp${id}')">+ Aggiungi</button>
+        <button class="undoq" onclick="undoFusto('mp${id}')" title="Annulla ultimo">↺</button>
+      </div>
+    </div>`;
+  $('mpRows').appendChild(c);
+  c.querySelector('.mp-um').addEventListener('change',e=>{c.querySelector('.mp-umlbl').textContent=e.target.value;saveState();});
+  c.querySelector('.mp-add').addEventListener('keydown',e=>{if(e.key==='Enter')addFusto('mp'+id);});
+  if(data){c.querySelector('.mp-prod').value=data.prodotto||'';c.querySelector('.mp-forn').value=data.fornitore||'';
+    c.querySelector('.mp-lotto').value=data.lotto||'';const um=c.querySelector('.mp-um');um.value=data.um||'kg';
+    c.querySelector('.mp-umlbl').textContent=um.value;c.dataset.fusti=JSON.stringify(data.fusti||[]);paintF(c);}
+  renum();saveState();
+}
+function sumF(c){const a=JSON.parse(c.dataset.fusti||'[]');return a.reduce((s,x)=>s+x,0);}
+function paintF(c){const a=JSON.parse(c.dataset.fusti||'[]');const t=sumF(c);
+  c.querySelector('.mp-tot').textContent=(Math.round(t*1000)/1000);
+  c.querySelector('.mp-cnt').textContent=a.length?`· ${a.length} pesat${a.length>1?'e':'a'}`:'';}
+function addFusto(cid){const c=$(cid),inp=c.querySelector('.mp-add'),v=parseFloat((inp.value||'').replace(',','.'));
+  if(!isFinite(v)||v<=0){inp.focus();return;}const a=JSON.parse(c.dataset.fusti||'[]');a.push(v);c.dataset.fusti=JSON.stringify(a);inp.value='';paintF(c);inp.focus();saveState();}
+function undoFusto(cid){const c=$(cid);const a=JSON.parse(c.dataset.fusti||'[]');a.pop();c.dataset.fusti=JSON.stringify(a);paintF(c);saveState();}
+
+/* prodotto finito — accumulo pezzi per fusto */
+let pfId=0;
+function addPF(data){
+  pfId++;const id=pfId;
+  const c=document.createElement('div');c.className='card';c.dataset.pz='[]';c.dataset.mode='vasi';c.id='pf'+id;
+  c.innerHTML=`
+    <span class="cardnum"></span><button class="del" onclick="delCard(this)">×</button>
+    <div class="pf-prod-row">
+      <label class="fld tight"><span class="lab">Prodotto</span><input class="pf-prod" list="dlProdotti" placeholder="cerca o scrivi nuovo"></label>
+      <label class="fld tight"><span class="lab">Codice</span><input class="pf-code" placeholder="cod."></label>
+    </div>
+    <div class="newhint">Non in elenco? Scrivi nome e codice a mano.</div>
+    <label class="fld tight" style="margin-bottom:10px"><span class="lab">Formato</span><input class="pf-fmt" list="dlFmt${id}" placeholder="es. 212 (ml) o Fusto"><datalist id="dlFmt${id}"></datalist></label>
+    <div class="pf-mode">
+      <button type="button" class="m-vasi on" onclick="setMode('pf${id}','vasi')">A vasi (pezzi)</button>
+      <button type="button" class="m-peso" onclick="setMode('pf${id}','peso')">A peso</button>
+    </div>
+    <div class="only-vasi">
+      <div class="peso-row">
+        <label class="fld tight"><span class="lab">Peso netto unitario</span><input class="pf-peso" inputmode="decimal" placeholder="es. 190"></label>
+        <label class="fld tight"><span class="lab">UM</span><select class="pf-um"><option>g</option><option>kg</option></select></label>
+      </div>
+      <div class="fusto">
+        <div class="fusto-total"><span class="lab">Pezzi prodotti</span>
+          <span class="val"><b class="pf-tot">0</b> pz <span class="cnt pf-cnt"></span></span></div>
+        <div class="fusto-add">
+          <input class="pf-add" inputmode="numeric" placeholder="vasi prodotti">
+          <button class="addq" onclick="addPz('pf${id}')">+ Aggiungi</button>
+          <button class="undoq" onclick="undoPz('pf${id}')" title="Annulla ultimo">↺</button>
+        </div>
+      </div>
+    </div>
+    <div class="only-peso">
+      <div class="peso-row">
+        <label class="fld tight"><span class="lab">Quantità totale (variabile)</span><input class="pf-qty" inputmode="decimal" placeholder="es. 85"></label>
+        <label class="fld tight"><span class="lab">UM</span><select class="pf-um2"><option>kg</option><option>g</option><option>l</option></select></label>
+      </div>
+    </div>
+    <div class="g2" style="margin:2px 0 0">
+      <label class="fld tight"><span class="lab">Lotto finito</span><input class="pf-lotto" placeholder="es. 177/26/CV"></label>
+      <label class="fld tight"><span class="lab">Scadenza</span><input class="pf-scad" type="date"></label>
+    </div>
+    <div class="kg">Kg netto: <b class="pf-kg">0.000</b></div>`;
+  $('pfRows').appendChild(c);
+  c.querySelector('.pf-prod').addEventListener('input',()=>{onProd(c);autoDenom(c);saveState();});
+  c.querySelector('.pf-fmt').addEventListener('input',()=>{onFmt(c);calcKg(c);saveState();});
+  c.querySelector('.pf-peso').addEventListener('input',()=>{calcKg(c);saveState();});
+  c.querySelector('.pf-um').addEventListener('change',()=>{calcKg(c);saveState();});
+  c.querySelector('.pf-qty').addEventListener('input',()=>{calcKg(c);saveState();});
+  c.querySelector('.pf-um2').addEventListener('change',()=>{calcKg(c);saveState();});
+  c.querySelector('.pf-add').addEventListener('keydown',e=>{if(e.key==='Enter')addPz('pf'+id);});
+  if(data){
+    c.querySelector('.pf-prod').value=data.prod||'';c.querySelector('.pf-code').value=data.code||'';onProd(c,true);
+    c.querySelector('.pf-fmt').value=data.fmt||'';
+    c.querySelector('.pf-peso').value=data.peso||'';if(data.um)c.querySelector('.pf-um').value=data.um;
+    c.querySelector('.pf-qty').value=data.qty||'';if(data.um2)c.querySelector('.pf-um2').value=data.um2;
+    c.querySelector('.pf-lotto').value=data.lotto!==undefined?data.lotto:lottoPrefix();
+    if(data.scad)c.querySelector('.pf-scad').value=data.scad;
+    c.dataset.pz=JSON.stringify(data.pz||[]);
+    setMode('pf'+id,data.mode||'vasi',true);paintPz(c);
+  } else { c.querySelector('.pf-lotto').value=lottoPrefix(); c.querySelector('.pf-scad').value=scadDefault(); }
+  renum();saveState();
+}
+function onProd(c,silent){
+  const name=c.querySelector('.pf-prod').value.trim();
+  const p=(ANAG.prodotti||[]).find(x=>x.n.toLowerCase()===name.toLowerCase());
+  const dlEl=document.getElementById(c.querySelector('.pf-fmt').getAttribute('list'));
+  if(p){
+    if(!silent||!c.querySelector('.pf-code').value)c.querySelector('.pf-code').value=p.c||'';
+    dlEl.innerHTML='';
+    (ANAG.formati[p.n]||[]).forEach(f=>{const o=document.createElement('option');o.value=(typeof f.f==='number')?String(f.f):f.f;dlEl.appendChild(o);});
+    const lot=c.querySelector('.pf-lotto');
+    if(!silent&&(lot.value===''||/^\d+\/\d+\/$/.test(lot.value)))lot.value=lottoPrefix()+(p.c||'');
+  }
+}
+function autoDenom(c){
+  if(document.querySelector('#pfRows .card')!==c)return;
+  const d=$('denom');if(!d.value.trim())d.value=c.querySelector('.pf-prod').value;
+}
+function onFmt(c){
+  const name=c.querySelector('.pf-prod').value.trim();
+  const p=(ANAG.prodotti||[]).find(x=>x.n.toLowerCase()===name.toLowerCase());
+  if(!p)return;
+  const fval=c.querySelector('.pf-fmt').value.trim();
+  const f=(ANAG.formati[p.n]||[]).find(x=>String(x.f).toLowerCase()===fval.toLowerCase());
+  if(!f)return;
+  if(f.bulk){setMode(c.id,'peso');}
+  else{setMode(c.id,'vasi');if(f.p){c.querySelector('.pf-peso').value=f.p;c.querySelector('.pf-um').value='g';}}
+}
+function setMode(cid,mode,silent){
+  const c=$(cid);c.dataset.mode=mode;c.classList.toggle('mode-peso',mode==='peso');
+  c.querySelector('.m-vasi').classList.toggle('on',mode==='vasi');
+  c.querySelector('.m-peso').classList.toggle('on',mode==='peso');
+  if(!silent){calcKg(c);saveState();}
+}
+function sumPz(c){return JSON.parse(c.dataset.pz||'[]').reduce((s,x)=>s+x,0);}
+function calcKg(c){
+  let kg=0;const mode=c.dataset.mode||'vasi';
+  if(mode==='peso'){
+    const q=parseFloat((c.querySelector('.pf-qty').value||'').replace(',','.'))||0;
+    const u=c.querySelector('.pf-um2').value;kg=(u==='g')?q/1000:q;
+  } else {
+    const peso=parseFloat((c.querySelector('.pf-peso').value||'').replace(',','.'))||0;
+    const u=c.querySelector('.pf-um').value;const pkg=(u==='kg')?peso:peso/1000;kg=pkg*sumPz(c);
+  }
+  c.querySelector('.pf-kg').textContent=kg.toFixed(3);
+}
+function paintPz(c){const a=JSON.parse(c.dataset.pz||'[]');c.querySelector('.pf-tot').textContent=sumPz(c);
+  c.querySelector('.pf-cnt').textContent=a.length?`· ${a.length} aggiunt${a.length>1?'e':'a'}`:'';calcKg(c);}
+function addPz(cid){const c=$(cid),inp=c.querySelector('.pf-add'),v=parseInt(inp.value,10);
+  if(!isFinite(v)||v<=0){inp.focus();return;}const a=JSON.parse(c.dataset.pz||'[]');a.push(v);c.dataset.pz=JSON.stringify(a);inp.value='';paintPz(c);inp.focus();saveState();}
+function undoPz(cid){const c=$(cid);const a=JSON.parse(c.dataset.pz||'[]');a.pop();c.dataset.pz=JSON.stringify(a);paintPz(c);saveState();}
+
+function renum(){document.querySelectorAll('#mpRows .card').forEach((c,k)=>c.querySelector('.cardnum').textContent=k+1);
+  document.querySelectorAll('#pfRows .card').forEach((c,k)=>c.querySelector('.cardnum').textContent='F'+(k+1));}
+function delCard(btn){btn.parentNode.remove();renum();saveState();}
+
+/* ---- auto-salvataggio nella memoria del tablet ---- */
+const STORE_KEY='scheda_prod_autosave_v2';
+function safeSet(k,v){try{localStorage.setItem(k,v);return true;}catch(e){return false;}}
+function safeGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function safeDel(k){try{localStorage.removeItem(k);}catch(e){}}
+function collectState(){return{
+  denom:$('denom').value,prog:$('prog').value,data:$('data').value,ph:$('ph').value,temp:$('temp').value,
+  operators,state,accMs,segStart,
+  mp:[...document.querySelectorAll('#mpRows .card')].map(c=>({prodotto:c.querySelector('.mp-prod').value,
+    fornitore:c.querySelector('.mp-forn').value,lotto:c.querySelector('.mp-lotto').value,
+    um:c.querySelector('.mp-um').value,fusti:JSON.parse(c.dataset.fusti||'[]')})),
+  pf:[...document.querySelectorAll('#pfRows .card')].map(c=>({prod:c.querySelector('.pf-prod').value,
+    code:c.querySelector('.pf-code').value,fmt:c.querySelector('.pf-fmt').value,mode:c.dataset.mode||'vasi',
+    peso:c.querySelector('.pf-peso').value,um:c.querySelector('.pf-um').value,
+    qty:c.querySelector('.pf-qty').value,um2:c.querySelector('.pf-um2').value,
+    lotto:c.querySelector('.pf-lotto').value,scad:c.querySelector('.pf-scad').value,
+    pz:JSON.parse(c.dataset.pz||'[]')})),savedAt:Date.now()};}
+let _saveT=null,pendingResume=false;
+function saveState(){if(pendingResume)return;clearTimeout(_saveT);_saveT=setTimeout(()=>safeSet(STORE_KEY,JSON.stringify(collectState())),250);}
+function hasContent(s){return s&&(s.denom||s.prog||(s.mp&&s.mp.some(m=>m.prodotto||m.fusti.length))||(s.pf&&s.pf.some(p=>p.formato||p.pz.length))||s.accMs>0||s.state==='running');}
+function restoreState(s){
+  $('denom').value=s.denom||'';$('prog').value=s.prog||'';if(s.data)$('data').value=s.data;
+  $('ph').value=s.ph||'';$('temp').value=s.temp||'102 °C';$('progLbl').textContent=s.prog||'—';
+  operators=s.operators||1;$('opVal').textContent=operators;
+  state=s.state||'idle';accMs=s.accMs||0;segStart=s.segStart||null;
+  $('mpRows').innerHTML='';$('pfRows').innerHTML='';
+  (s.mp&&s.mp.length?s.mp:[null]).forEach(m=>addMP(m));
+  (s.pf&&s.pf.length?s.pf:[null]).forEach(p=>addPF(p));
+  if(state==='running')loop();render();
+}
+document.addEventListener('input',saveState);
+
+function buildDatalists(){
+  const mk=(id,arr)=>{let d=document.getElementById(id);if(!d){d=document.createElement('datalist');d.id=id;document.body.appendChild(d);}d.innerHTML='';(arr||[]).forEach(v=>{const o=document.createElement('option');o.value=v;d.appendChild(o);});};
+  mk('dlProdotti',(ANAG.prodotti||[]).map(p=>p.n));mk('dlFornitori',ANAG.fornitori);mk('dlMaterie',ANAG.materie);
+}
+buildDatalists();
+(function init(){
+  let saved=null;try{saved=JSON.parse(safeGet(STORE_KEY));}catch(e){}
+  if(hasContent(saved)){
+    pendingResume=true;
+    const wrap=document.querySelector('.wrap'),hdr=wrap.querySelector('header.top');
+    const bar=document.createElement('div');bar.className='resume';
+    bar.innerHTML=`<div class="resume-txt">C'è una produzione non conclusa${saved.denom?` — <b>${saved.denom}</b>`:''}. Riprendere?</div>
+      <div class="resume-btn"><button class="r-yes">Riprendi</button><button class="r-no">Nuova</button></div>`;
+    wrap.insertBefore(bar,hdr.nextSibling);
+    bar.querySelector('.r-yes').onclick=()=>{pendingResume=false;restoreState(saved);bar.remove();};
+    bar.querySelector('.r-no').onclick=()=>{pendingResume=false;safeDel(STORE_KEY);bar.remove();addMP();addPF();render();};
+  }else{addMP();addPF();render();}
+})();
+
+/* export */
+function genExcel(){
+  const denom=($('denom').value||'PRODOTTO').trim(),prog=$('prog').value||'';
+  const dataIt=()=>{const d=$('data').value;if(!d)return'';const[y,m,g]=d.split('-');return `${g}/${m}/${y}`;};
+  const mp=[...document.querySelectorAll('#mpRows .card')].map((c,i)=>({n:i+1,prod:c.querySelector('.mp-prod').value,
+    forn:c.querySelector('.mp-forn').value,lotto:c.querySelector('.mp-lotto').value,
+    qnt:sumF(c),um:c.querySelector('.mp-um').value,fusti:JSON.parse(c.dataset.fusti||'[]').length})).filter(x=>x.prod||x.qnt);
+  const pf=[...document.querySelectorAll('#pfRows .card')].map(c=>{
+    const mode=c.dataset.mode||'vasi',s=c.querySelector('.pf-scad').value;let kg=0,pezzi='',peso='',um='';
+    if(mode==='peso'){const q=parseFloat((c.querySelector('.pf-qty').value||'').replace(',','.'))||0;um=c.querySelector('.pf-um2').value;kg=(um==='g')?q/1000:q;}
+    else{const pv=parseFloat((c.querySelector('.pf-peso').value||'').replace(',','.'))||0;um=c.querySelector('.pf-um').value;const pkg=(um==='kg')?pv:pv/1000;pezzi=sumPz(c);kg=pkg*pezzi;peso=pv;}
+    return {prod:c.querySelector('.pf-prod').value,code:c.querySelector('.pf-code').value,fmt:c.querySelector('.pf-fmt').value,mode:mode,peso:peso,um:um,pezzi:pezzi,kg:kg,lotto:c.querySelector('.pf-lotto').value,scad:s?s.split('-').reverse().join('/'):''};
+  }).filter(x=>x.fmt||x.prod||x.kg);
+
+  const A=[];
+  A.push(["SCHEDA DI LAVORAZIONE E RINTRACCIABILITA'"]);A.push([]);
+  A.push(['Denominazione prodotto',denom]);
+  A.push(['N. progressivo produzione',prog,'','Ore lavorate',Number(oreUomo().toFixed(2)),'','Data',dataIt()]);
+  A.push(['Operatori',operators,'','Durata cronometro',fmt(totalMs())]);A.push([]);
+  A.push(['MATERIE PRIME UTILIZZATE']);
+  A.push(['N.','PRODOTTO','FORNITORE',"LOTTO D'INGRESSO",'QNT','UM','N. PESATE']);
+  mp.forEach(m=>A.push([m.n,m.prod,m.forn,m.lotto,Number((Math.round(m.qnt*1000)/1000)),m.um,m.fusti]));
+  A.push([]);A.push(['PRODOTTO FINITO']);
+  A.push(['PRODOTTO','FORMATO','PESO NETTO','UM','PEZZI',"KG NETTO",'LOTTO','SCADENZA']);
+  pf.forEach(p=>A.push([p.prod,p.fmt,p.peso,p.um,p.pezzi,Number(p.kg.toFixed(3)),p.lotto,p.scad]));
+  A.push([]);A.push(['pH',$('ph').value,'','Temp. pastorizzazione',$('temp').value]);
+  A.push([]);A.push(['DATA E FIRMA RESPONSABILE DI PRODUZIONE']);
+
+  const dati={denominazione:denom,progressivo:prog,ore_lavorate:Number(oreUomo().toFixed(2)),
+    operatori:operators,durata:fmt(totalMs()),data:$('data').value,ph:$('ph').value,temp:$('temp').value,
+    materie_prime:mp.map(m=>({prodotto:m.prod,fornitore:m.forn,lotto:m.lotto,qnt:m.qnt,um:m.um,pesate:m.fusti})),
+    prodotto_finito:pf.map(p=>({prodotto:p.prod,codice:p.code,formato:p.fmt,modo:p.mode,peso_netto:p.peso,um:p.um,pezzi:p.pezzi,kg_netto:Number(p.kg.toFixed(3)),lotto:p.lotto,scadenza:p.scad}))};
+  const ws=XLSX.utils.aoa_to_sheet(A);
+  ws['!cols']=[{wch:18},{wch:20},{wch:20},{wch:20},{wch:9},{wch:6},{wch:9}];
+  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:6}}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'SCHEDA');
+  const wsd=XLSX.utils.aoa_to_sheet([['DATI — non modificare'],[JSON.stringify(dati)]]);
+  XLSX.utils.book_append_sheet(wb,wsd,'DATI');
+  const fname=`Scheda_${denom.replace(/[^\w]+/g,'_')}${prog?'_P'+prog:''}.xlsx`;
+  XLSX.writeFile(wb,fname);$('hint').textContent='File generato: '+fname;
+}
+render();
+</script>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});
+}
+</script>
+</body>
+</html>
