@@ -45,35 +45,41 @@
   .sec-head h2{margin:0;font-size:.82rem;letter-spacing:.13em;text-transform:uppercase;font-weight:800}
   .sec-head .ix{font-family:var(--mono);font-size:.78rem;color:#fff;background:var(--plum);border-radius:6px;padding:3px 8px;font-weight:700}
   .sec-head .rule{flex:1;height:1px;background:var(--line)}
+  section.sec-a{background:#EEF3EA;border-color:#DBE6D2}
+  section.sec-a .ix{background:#5E7B4E} section.sec-a .sec-head h2{color:#3F5636} section.sec-a .rule{background:#DBE6D2}
+  section.sec-b{background:#EAEFF6;border-color:#D6E0EE}
+  section.sec-b .ix{background:#4A5E8C} section.sec-b .sec-head h2{color:#36456A} section.sec-b .rule{background:#D6E0EE}
+  section.sec-c{background:#F7EFE3;border-color:#ECDFCB}
+  section.sec-c .ix{background:#A8703C} section.sec-c .sec-head h2{color:#7A5126} section.sec-c .rule{background:#ECDFCB}
   .sec-note{font-size:.78rem;color:var(--ink-soft);margin:-6px 0 14px}
 
-  .timer{background:var(--plum-deep);color:#F3E9EE;border-radius:18px;padding:20px 18px 18px;margin-bottom:18px;position:relative;overflow:hidden}
-  .timer.is-running{background:#1f1a16;box-shadow:inset 0 0 0 2px var(--run)}
-  .timer.is-done{background:#15281b;box-shadow:inset 0 0 0 2px var(--done)}
-  .timer .status{display:inline-flex;align-items:center;gap:8px;font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;font-weight:800;opacity:.95;margin-bottom:6px}
-  .dot{width:9px;height:9px;border-radius:50%;background:#C9B7C2}
+  .timer{background:#F1EAEF;color:var(--ink);border:1px solid #E4D8E1;border-radius:18px;padding:20px 18px 18px;margin-bottom:18px;position:relative;overflow:hidden}
+  .timer.is-running{background:#F7EEE8;border-color:#EAD3C5}
+  .timer.is-done{background:#EAF1EB;border-color:#CFE2D3}
+  .timer .status{display:inline-flex;align-items:center;gap:8px;font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;font-weight:800;color:var(--ink-soft);margin-bottom:6px}
+  .dot{width:9px;height:9px;border-radius:50%;background:#C2AEBA}
   .is-running .dot{background:var(--run);animation:pulse 1.1s infinite}
   .is-done .dot{background:var(--done)}
   @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
-  .clock{font-family:var(--mono);font-size:3.6rem;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;margin:2px 0 4px}
+  .clock{font-family:var(--mono);font-size:3.6rem;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;margin:2px 0 4px;color:var(--plum-deep)}
   @media(max-width:480px){.clock{font-size:2.9rem}}
-  .timer-sub{font-size:.82rem;opacity:.8}
+  .timer-sub{font-size:.82rem;color:var(--ink-soft)}
   .timer-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px;align-items:end}
-  .opbox .lab,.oreout .lab{font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;opacity:.7;font-weight:800;margin-bottom:7px}
-  .stepper{display:flex;align-items:center;background:rgba(255,255,255,.07);border-radius:12px;overflow:hidden;width:fit-content}
-  .stepper button{width:50px;height:50px;border:none;background:transparent;color:#fff;font-size:1.6rem;font-weight:600;cursor:pointer}
-  .stepper button:active{background:rgba(255,255,255,.16)}
+  .opbox .lab,.oreout .lab{font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);font-weight:800;margin-bottom:7px}
+  .stepper{display:flex;align-items:center;background:rgba(94,39,71,.07);border-radius:12px;overflow:hidden;width:fit-content}
+  .stepper button{width:50px;height:50px;border:none;background:transparent;color:var(--plum);font-size:1.6rem;font-weight:600;cursor:pointer}
+  .stepper button:active{background:rgba(94,39,71,.14)}
   .stepper .opval{min-width:42px;text-align:center;font-family:var(--mono);font-size:1.5rem;font-weight:700}
   .oreout{text-align:right}
-  .oreout .big{font-family:var(--mono);font-size:2rem;font-weight:700;line-height:1}
+  .oreout .big{font-family:var(--mono);font-size:2rem;font-weight:700;line-height:1;color:var(--plum)}
   .oreout .big span{font-size:.95rem;opacity:.7;font-weight:600}
   .timer-actions{display:flex;gap:10px;margin-top:18px}
   .btn{flex:1;min-height:var(--tap);border:none;border-radius:12px;font-family:inherit;font-size:1.02rem;font-weight:700;cursor:pointer;transition:transform .06s}
   .btn:active{transform:translateY(1px)}
   .btn-start{background:var(--run);color:#fff}
-  .btn-pause{background:rgba(255,255,255,.14);color:#fff}
-  .btn-resume{background:#fff;color:var(--ink)}
-  .btn-stop{background:rgba(255,255,255,.1);color:#F3DCD2;box-shadow:inset 0 0 0 1.5px rgba(243,220,210,.5)}
+  .btn-pause{background:#E7DAE2;color:var(--plum-deep)}
+  .btn-resume{background:var(--plum);color:#fff}
+  .btn-stop{background:#fff;color:var(--ink-soft);box-shadow:inset 0 0 0 1.5px var(--line-strong)}
   .btn[disabled]{opacity:.4;pointer-events:none}
 
   /* cards for ingredients / formats */
@@ -164,21 +170,21 @@
     </div>
   </div>
 
-  <section>
+  <section class="sec-a">
     <div class="sec-head"><span class="ix">A</span><h2>Materie prime utilizzate</h2><span class="rule"></span></div>
     <div class="sec-note">Registra ogni quantità pesata: l'app somma i totali. Lotto diverso → aggiungi una nuova materia prima.</div>
     <div id="mpRows"></div>
     <button class="addbtn" type="button" onclick="addMP()">+ Aggiungi materia prima</button>
   </section>
 
-  <section>
+  <section class="sec-b">
     <div class="sec-head"><span class="ix">B</span><h2>Prodotto finito</h2><span class="rule"></span></div>
     <div class="sec-note">Aggiungi i vasi riempiti man mano: i kg netti si calcolano da soli.</div>
     <div id="pfRows"></div>
     <button class="addbtn" type="button" onclick="addPF()">+ Aggiungi formato</button>
   </section>
 
-  <section>
+  <section class="sec-c">
     <div class="sec-head"><span class="ix">C</span><h2>Parametri di processo</h2><span class="rule"></span></div>
     <div class="params">
       <label class="fld tight"><span class="lab">pH</span><input id="ph" inputmode="decimal" placeholder="es. 3.59"></label>
