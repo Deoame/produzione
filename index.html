@@ -95,7 +95,7 @@
   .fusto-total .val{font-family:var(--mono);font-weight:700}
   .fusto-total .val b{font-size:1.5rem;color:var(--plum)}
   .fusto-total .cnt{font-size:.72rem;color:var(--ink-soft);font-weight:600}
-  .fusto-add{display:grid;grid-template-columns:1fr auto auto;gap:8px}
+  .fusto-add{display:grid;grid-template-columns:1fr auto;gap:8px}
   .fusto-add input{min-height:48px}
   .fusto-add .addq{min-height:48px;padding:0 16px;border:none;border-radius:10px;background:var(--plum);color:#fff;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap}
   .fusto-add .addq:active{transform:translateY(1px)}
@@ -126,6 +126,16 @@
   .peso-row{display:grid;grid-template-columns:1fr 84px;gap:8px;margin-bottom:10px}
   .card.mode-peso .only-vasi{display:none}
   .card:not(.mode-peso) .only-peso{display:none}
+  .newprod{border:1.5px solid var(--plum);background:#fff;color:var(--plum);font-family:inherit;font-weight:700;font-size:.78rem;padding:7px 12px;border-radius:9px;cursor:pointer;min-height:38px}
+  .newprod:active{background:var(--plum);color:#fff}
+  .ac-list{position:absolute;left:0;right:0;top:100%;z-index:50;background:#fff;border:1.5px solid var(--line-strong);border-top:none;border-radius:0 0 10px 10px;max-height:240px;overflow:auto;box-shadow:0 10px 22px rgba(0,0,0,.12)}
+  .ac-item{padding:13px 14px;font-size:.95rem;cursor:pointer;border-bottom:1px solid var(--line)}
+  .ac-item:last-child{border-bottom:none}
+  .ac-item:active{background:#F4EDE6}
+  .pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .pill{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1.5px solid var(--line-strong);border-radius:999px;padding:7px 12px;font-family:var(--mono);font-weight:700;font-size:.9rem;cursor:pointer}
+  .pill i{font-style:normal;color:var(--run);font-weight:800;font-size:1rem}
+  .pill:active{background:#FBEDE6;border-color:var(--run)}
 </style>
 </head>
 <body>
@@ -136,6 +146,7 @@
     <div class="meta">
       <span>Data <b id="oggi">—</b></span>
       <span>Progr. <b id="progLbl">—</b></span>
+      <button id="btnNew" class="newprod" onclick="nuovaProduzione()">+ Nuova</button>
     </div>
   </header>
 
@@ -246,9 +257,9 @@ function addMP(data){
   const c=document.createElement('div');c.className='card';c.dataset.fusti='[]';c.id='mp'+id;
   c.innerHTML=`
     <span class="cardnum"></span><button class="del" onclick="delCard(this)">×</button>
-    <label class="fld tight" style="margin-bottom:10px"><span class="lab">Prodotto</span><input class="mp-prod" list="dlMaterie" placeholder="es. peperoncino"></label>
+    <label class="fld tight" style="margin-bottom:10px"><span class="lab">Prodotto</span><input class="mp-prod" placeholder="es. peperoncino"></label>
     <div class="g2" style="margin-bottom:10px">
-      <label class="fld tight"><span class="lab">Fornitore</span><input class="mp-forn" list="dlFornitori" placeholder="es. az. Scalzo"></label>
+      <label class="fld tight"><span class="lab">Fornitore</span><input class="mp-forn" placeholder="es. az. Scalzo"></label>
       <label class="fld tight"><span class="lab">Lotto ingresso</span><input class="mp-lotto" placeholder="es. 185/26"></label>
     </div>
     <label class="fld tight" style="margin-bottom:10px"><span class="lab">Unità di misura</span>
@@ -259,12 +270,14 @@ function addMP(data){
       <div class="fusto-add">
         <input class="mp-add" inputmode="decimal" placeholder="quantità pesata">
         <button class="addq" onclick="addFusto('mp${id}')">+ Aggiungi</button>
-        <button class="undoq" onclick="undoFusto('mp${id}')" title="Annulla ultimo">↺</button>
       </div>
+      <div class="pills mp-pills"></div>
     </div>`;
   $('mpRows').appendChild(c);
   c.querySelector('.mp-um').addEventListener('change',e=>{c.querySelector('.mp-umlbl').textContent=e.target.value;saveState();});
   c.querySelector('.mp-add').addEventListener('keydown',e=>{if(e.key==='Enter')addFusto('mp'+id);});
+  attachAC(c.querySelector('.mp-prod'),()=>ANAG.materie||[]);
+  attachAC(c.querySelector('.mp-forn'),()=>ANAG.fornitori||[]);
   if(data){c.querySelector('.mp-prod').value=data.prodotto||'';c.querySelector('.mp-forn').value=data.fornitore||'';
     c.querySelector('.mp-lotto').value=data.lotto||'';const um=c.querySelector('.mp-um');um.value=data.um||'kg';
     c.querySelector('.mp-umlbl').textContent=um.value;c.dataset.fusti=JSON.stringify(data.fusti||[]);paintF(c);}
@@ -273,7 +286,8 @@ function addMP(data){
 function sumF(c){const a=JSON.parse(c.dataset.fusti||'[]');return a.reduce((s,x)=>s+x,0);}
 function paintF(c){const a=JSON.parse(c.dataset.fusti||'[]');const t=sumF(c);
   c.querySelector('.mp-tot').textContent=(Math.round(t*1000)/1000);
-  c.querySelector('.mp-cnt').textContent=a.length?`· ${a.length} pesat${a.length>1?'e':'a'}`:'';}
+  c.querySelector('.mp-cnt').textContent=a.length?`· ${a.length} pesat${a.length>1?'e':'a'}`:'';
+  renderPills(c,'.mp-pills',a,(i)=>removeFustoAt(c,i));}
 function addFusto(cid){const c=$(cid),inp=c.querySelector('.mp-add'),v=parseFloat((inp.value||'').replace(',','.'));
   if(!isFinite(v)||v<=0){inp.focus();return;}const a=JSON.parse(c.dataset.fusti||'[]');a.push(v);c.dataset.fusti=JSON.stringify(a);inp.value='';paintF(c);inp.focus();saveState();}
 function undoFusto(cid){const c=$(cid);const a=JSON.parse(c.dataset.fusti||'[]');a.pop();c.dataset.fusti=JSON.stringify(a);paintF(c);saveState();}
@@ -286,11 +300,11 @@ function addPF(data){
   c.innerHTML=`
     <span class="cardnum"></span><button class="del" onclick="delCard(this)">×</button>
     <div class="pf-prod-row">
-      <label class="fld tight"><span class="lab">Prodotto</span><input class="pf-prod" list="dlProdotti" placeholder="cerca o scrivi nuovo"></label>
+      <label class="fld tight"><span class="lab">Prodotto</span><input class="pf-prod" placeholder="cerca o scrivi nuovo"></label>
       <label class="fld tight"><span class="lab">Codice</span><input class="pf-code" placeholder="cod."></label>
     </div>
     <div class="newhint">Non in elenco? Scrivi nome e codice a mano.</div>
-    <label class="fld tight" style="margin-bottom:10px"><span class="lab">Formato</span><input class="pf-fmt" list="dlFmt${id}" placeholder="es. 212 (ml) o Fusto"><datalist id="dlFmt${id}"></datalist></label>
+    <label class="fld tight" style="margin-bottom:10px"><span class="lab">Formato</span><input class="pf-fmt" placeholder="es. 212 (ml) o Fusto"></label>
     <div class="pf-mode">
       <button type="button" class="m-vasi on" onclick="setMode('pf${id}','vasi')">A vasi (pezzi)</button>
       <button type="button" class="m-peso" onclick="setMode('pf${id}','peso')">A peso</button>
@@ -306,8 +320,8 @@ function addPF(data){
         <div class="fusto-add">
           <input class="pf-add" inputmode="numeric" placeholder="vasi prodotti">
           <button class="addq" onclick="addPz('pf${id}')">+ Aggiungi</button>
-          <button class="undoq" onclick="undoPz('pf${id}')" title="Annulla ultimo">↺</button>
         </div>
+        <div class="pills pf-pills"></div>
       </div>
     </div>
     <div class="only-peso">
@@ -329,6 +343,8 @@ function addPF(data){
   c.querySelector('.pf-qty').addEventListener('input',()=>{calcKg(c);saveState();});
   c.querySelector('.pf-um2').addEventListener('change',()=>{calcKg(c);saveState();});
   c.querySelector('.pf-add').addEventListener('keydown',e=>{if(e.key==='Enter')addPz('pf'+id);});
+  attachAC(c.querySelector('.pf-prod'),()=>(ANAG.prodotti||[]).map(p=>p.n));
+  attachAC(c.querySelector('.pf-fmt'),()=>{const nm=c.querySelector('.pf-prod').value.trim().toLowerCase();const p=(ANAG.prodotti||[]).find(x=>x.n.toLowerCase()===nm);return p?(ANAG.formati[p.n]||[]).map(f=>String(f.f)):[];});
   if(data){
     c.querySelector('.pf-prod').value=data.prod||'';c.querySelector('.pf-code').value=data.code||'';onProd(c,true);
     c.querySelector('.pf-fmt').value=data.fmt||'';
@@ -344,11 +360,8 @@ function addPF(data){
 function onProd(c,silent){
   const name=c.querySelector('.pf-prod').value.trim();
   const p=(ANAG.prodotti||[]).find(x=>x.n.toLowerCase()===name.toLowerCase());
-  const dlEl=document.getElementById(c.querySelector('.pf-fmt').getAttribute('list'));
   if(p){
     if(!silent||!c.querySelector('.pf-code').value)c.querySelector('.pf-code').value=p.c||'';
-    dlEl.innerHTML='';
-    (ANAG.formati[p.n]||[]).forEach(f=>{const o=document.createElement('option');o.value=(typeof f.f==='number')?String(f.f):f.f;dlEl.appendChild(o);});
     const lot=c.querySelector('.pf-lotto');
     if(!silent&&(lot.value===''||/^\d+\/\d+\/$/.test(lot.value)))lot.value=lottoPrefix()+(p.c||'');
   }
@@ -386,7 +399,8 @@ function calcKg(c){
   c.querySelector('.pf-kg').textContent=kg.toFixed(3);
 }
 function paintPz(c){const a=JSON.parse(c.dataset.pz||'[]');c.querySelector('.pf-tot').textContent=sumPz(c);
-  c.querySelector('.pf-cnt').textContent=a.length?`· ${a.length} aggiunt${a.length>1?'e':'a'}`:'';calcKg(c);}
+  c.querySelector('.pf-cnt').textContent=a.length?`· ${a.length} aggiunt${a.length>1?'e':'a'}`:'';
+  renderPills(c,'.pf-pills',a,(i)=>removePzAt(c,i));calcKg(c);}
 function addPz(cid){const c=$(cid),inp=c.querySelector('.pf-add'),v=parseInt(inp.value,10);
   if(!isFinite(v)||v<=0){inp.focus();return;}const a=JSON.parse(c.dataset.pz||'[]');a.push(v);c.dataset.pz=JSON.stringify(a);inp.value='';paintPz(c);inp.focus();saveState();}
 function undoPz(cid){const c=$(cid);const a=JSON.parse(c.dataset.pz||'[]');a.pop();c.dataset.pz=JSON.stringify(a);paintPz(c);saveState();}
@@ -427,11 +441,44 @@ function restoreState(s){
 }
 document.addEventListener('input',saveState);
 
+function nuovaProduzione(){
+  if(!confirm('Iniziare una nuova produzione? I dati della scheda attuale verranno azzerati (assicurati di aver già generato la scheda).'))return;
+  try{clearInterval(tick);}catch(e){}
+  safeDel(STORE_KEY);
+  location.reload();
+}
+function attachAC(input, itemsFn){
+  const wrap=input.closest('label')||input.parentElement; wrap.style.position='relative';
+  let box=null;
+  function close(){if(box){box.remove();box=null;}}
+  function open(){
+    if(input._sel){input._sel=false;return;}
+    const q=input.value.trim().toLowerCase();
+    let items=(itemsFn()||[]).filter(Boolean);
+    if(q) items=items.filter(x=>String(x).toLowerCase().includes(q));
+    items=items.slice(0,8); close();
+    if(!items.length) return;
+    box=document.createElement('div'); box.className='ac-list';
+    items.forEach(v=>{const it=document.createElement('div');it.className='ac-item';it.textContent=v;
+      it.addEventListener('pointerdown',e=>{e.preventDefault();input._sel=true;input.value=v;input.dispatchEvent(new Event('input',{bubbles:true}));close();});
+      box.appendChild(it);});
+    wrap.appendChild(box);
+  }
+  input.addEventListener('focus',open);
+  input.addEventListener('input',open);
+  input.addEventListener('blur',()=>setTimeout(close,160));
+}
+function renderPills(c,sel,arr,cb){const b=c.querySelector(sel);if(!b)return;b.innerHTML='';
+  arr.forEach((v,i)=>{const p=document.createElement('span');p.className='pill';p.innerHTML=v+' <i>×</i>';
+    p.addEventListener('click',()=>{if(confirm('Rimuovere '+v+' ?'))cb(i);});b.appendChild(p);});}
+function removeFustoAt(c,i){const a=JSON.parse(c.dataset.fusti||'[]');a.splice(i,1);c.dataset.fusti=JSON.stringify(a);paintF(c);saveState();}
+function removePzAt(c,i){const a=JSON.parse(c.dataset.pz||'[]');a.splice(i,1);c.dataset.pz=JSON.stringify(a);paintPz(c);saveState();}
 function buildDatalists(){
   const mk=(id,arr)=>{let d=document.getElementById(id);if(!d){d=document.createElement('datalist');d.id=id;document.body.appendChild(d);}d.innerHTML='';(arr||[]).forEach(v=>{const o=document.createElement('option');o.value=v;d.appendChild(o);});};
   mk('dlProdotti',(ANAG.prodotti||[]).map(p=>p.n));mk('dlFornitori',ANAG.fornitori);mk('dlMaterie',ANAG.materie);
 }
 buildDatalists();
+attachAC($('denom'),()=>(ANAG.prodotti||[]).map(p=>p.n));
 (function init(){
   let saved=null;try{saved=JSON.parse(safeGet(STORE_KEY));}catch(e){}
   if(hasContent(saved)){
