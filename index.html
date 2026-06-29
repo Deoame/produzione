@@ -504,7 +504,7 @@ function attachAC(input, itemsFn){
     if(!items.length) return;
     box=document.createElement('div'); box.className='ac-list';
     items.forEach(v=>{const it=document.createElement('div');it.className='ac-item';it.textContent=v;
-      it.addEventListener('click',()=>{input._sel=true;input.value=v;input.dispatchEvent(new Event('input',{bubbles:true}));close();});
+      it.addEventListener('click',(e)=>{e.preventDefault();e.stopPropagation();input._sel=true;input.value=v;input.dispatchEvent(new Event('input',{bubbles:true}));close();});
       box.appendChild(it);});
     wrap.appendChild(box);
     document.addEventListener('pointerdown',outside,true);
@@ -519,7 +519,7 @@ function removeFustoAt(c,i){const a=JSON.parse(c.dataset.fusti||'[]');a.splice(i
 function removePzAt(c,i){const a=JSON.parse(c.dataset.pz||'[]');a.splice(i,1);c.dataset.pz=JSON.stringify(a);paintPz(c);saveState();}
 function showVer(){const el=$('verTag');if(!el)return;
   const standalone=(window.navigator.standalone===true)||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);
-  el.textContent='Produzione v12 · '+(standalone?'App (a tutto schermo)':'Safari');}
+  el.textContent='Produzione v14 · '+(standalone?'App (a tutto schermo)':'Safari');}
 function buildDatalists(){
   const mk=(id,arr)=>{let d=document.getElementById(id);if(!d){d=document.createElement('datalist');d.id=id;document.body.appendChild(d);}d.innerHTML='';(arr||[]).forEach(v=>{const o=document.createElement('option');o.value=v;d.appendChild(o);});};
   mk('dlProdotti',(ANAG.prodotti||[]).map(p=>p.n));mk('dlFornitori',ANAG.fornitori);mk('dlMaterie',ANAG.materie);
