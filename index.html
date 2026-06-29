@@ -128,7 +128,7 @@
   .card:not(.mode-peso) .only-peso{display:none}
   .newprod{border:1.5px solid var(--plum);background:#fff;color:var(--plum);font-family:inherit;font-weight:700;font-size:.78rem;padding:7px 12px;border-radius:9px;cursor:pointer;min-height:38px}
   .newprod:active{background:var(--plum);color:#fff}
-  .ac-list{position:absolute;left:0;right:0;top:100%;z-index:50;background:#fff;border:1.5px solid var(--line-strong);border-top:none;border-radius:0 0 10px 10px;max-height:240px;overflow-y:auto;-webkit-overflow-scrolling:touch;box-shadow:0 10px 22px rgba(0,0,0,.12)}
+  .ac-list{position:absolute;left:0;right:0;top:100%;z-index:50;background:#fff;border:1.5px solid var(--line-strong);border-top:none;border-radius:0 0 10px 10px;max-height:320px;overflow-y:auto;-webkit-overflow-scrolling:touch;box-shadow:0 10px 22px rgba(0,0,0,.12)}
   .ac-item{padding:13px 14px;font-size:.95rem;cursor:pointer;border-bottom:1px solid var(--line)}
   .ac-item:last-child{border-bottom:none}
   .ac-item:active{background:#F4EDE6}
@@ -137,6 +137,10 @@
   .pill i{font-style:normal;color:var(--run);font-weight:800;font-size:1rem}
   .pill:active{background:#FBEDE6;border-color:var(--run)}
   .vtag{text-align:center;font-size:.68rem;color:var(--ink-soft);opacity:.6;margin:14px 0 4px;font-family:var(--mono)}
+  .tmode{display:flex;gap:8px;margin-bottom:14px}
+  .tmode button{flex:1;min-height:40px;border:1.5px solid var(--line-strong);background:#fff;border-radius:9px;font-family:inherit;font-weight:700;color:var(--ink-soft);cursor:pointer;font-size:.8rem}
+  .tmode button.on{background:var(--plum);color:#fff;border-color:var(--plum)}
+  .ore-man-input{width:100%;box-sizing:border-box;font-family:var(--mono);font-size:1.9rem;font-weight:700;text-align:center;padding:14px;border:1.5px solid var(--line-strong);border-radius:12px;background:#fff;color:var(--plum-deep)}
 </style>
 </head>
 <body>
@@ -159,26 +163,37 @@
   </div>
 
   <div class="timer" id="timer">
-    <div class="status"><span class="dot"></span><span id="statusTxt">Pronto</span></div>
-    <div class="clock" id="clock">00:00:00</div>
-    <div class="timer-sub" id="timerSub">Premi avvia quando inizia la lavorazione</div>
-    <div class="timer-grid">
-      <div class="opbox">
-        <div class="lab">Operatori</div>
-        <div class="stepper">
-          <button type="button" onclick="changeOp(-1)">−</button>
-          <div class="opval" id="opVal">1</div>
-          <button type="button" onclick="changeOp(1)">+</button>
+    <div class="tmode">
+      <button type="button" class="tm-auto on" onclick="setTMode('auto')">Cronometro</button>
+      <button type="button" class="tm-man" onclick="setTMode('manuale')">Ore a mano</button>
+    </div>
+    <div id="timerAuto">
+      <div class="status"><span class="dot"></span><span id="statusTxt">Pronto</span></div>
+      <div class="clock" id="clock">00:00:00</div>
+      <div class="timer-sub" id="timerSub">Premi avvia quando inizia la lavorazione</div>
+      <div class="timer-grid">
+        <div class="opbox">
+          <div class="lab">Operatori</div>
+          <div class="stepper">
+            <button type="button" onclick="changeOp(-1)">−</button>
+            <div class="opval" id="opVal">1</div>
+            <button type="button" onclick="changeOp(1)">+</button>
+          </div>
+        </div>
+        <div class="oreout">
+          <div class="lab">Ore lavorate (ore-uomo)</div>
+          <div class="big" id="oreUomo">0.00<span> h</span></div>
         </div>
       </div>
-      <div class="oreout">
-        <div class="lab">Ore lavorate (ore-uomo)</div>
-        <div class="big" id="oreUomo">0.00<span> h</span></div>
+      <div class="timer-actions">
+        <button class="btn btn-start" id="bMain" onclick="mainAction()">Avvia produzione</button>
+        <button class="btn btn-stop" id="bStop" onclick="stop()" disabled>Fine</button>
       </div>
     </div>
-    <div class="timer-actions">
-      <button class="btn btn-start" id="bMain" onclick="mainAction()">Avvia produzione</button>
-      <button class="btn btn-stop" id="bStop" onclick="stop()" disabled>Fine</button>
+    <div id="timerMan" style="display:none">
+      <div class="lab" style="margin-bottom:8px">Ore lavorate totali (ore-uomo)</div>
+      <input id="oreMan" class="ore-man-input" inputmode="decimal" placeholder="es. 6.5" oninput="render();saveState()">
+      <div class="timer-sub" style="margin-top:10px">Per una produzione registrata su carta: scrivi il totale delle ore-uomo (ore × operatori).</div>
     </div>
   </div>
 
@@ -229,10 +244,17 @@ $('data').addEventListener('change',()=>document.querySelectorAll('#pfRows .pf-l
 $('prog').addEventListener('input',e=>$('progLbl').textContent=e.target.value||'—');
 
 /* timer */
-let state='idle',accMs=0,segStart=null,operators=1,tick=null;
+let state='idle',accMs=0,segStart=null,operators=1,tick=null,tmode='auto';
 function fmt(ms){const t=Math.floor(ms/1000);return pad(Math.floor(t/3600))+':'+pad(Math.floor(t%3600/60))+':'+pad(t%60);}
 function totalMs(){return accMs+(state==='running'?Date.now()-segStart:0);}
 function oreUomo(){return (totalMs()/3600000)*operators;}
+function oreLavorate(){return tmode==='manuale'?(parseFloat(($('oreMan').value||'').replace(',','.'))||0):oreUomo();}
+function setTMode(m){tmode=m;
+  $('timerAuto').style.display=m==='auto'?'':'none';
+  $('timerMan').style.display=m==='manuale'?'':'none';
+  document.querySelector('.tm-auto').classList.toggle('on',m==='auto');
+  document.querySelector('.tm-man').classList.toggle('on',m==='manuale');
+  render();saveState();}
 function render(){
   $('clock').textContent=fmt(totalMs());
   $('oreUomo').innerHTML=oreUomo().toFixed(2)+'<span> h</span>';
@@ -242,8 +264,11 @@ function render(){
   if(state==='running'){st.textContent='In corso';sub.textContent='Il tempo viene registrato automaticamente';main.classList.add('btn-pause');main.textContent='Pausa';}
   if(state==='paused'){st.textContent='In pausa';sub.textContent='Riprendi per continuare a contare il tempo';main.classList.add('btn-resume');main.textContent='Riprendi';}
   if(state==='done'){st.textContent='Conclusa';sub.textContent='Tempo bloccato — pronto per la scheda';main.classList.add('btn-start');main.textContent='Riavvia';}
-  const done=(state==='done'),gb=$('genBtn'),gl=$('genLocked'),gh=$('hint');
-  if(gb){gb.style.display=done?'':'none';gl.style.display=done?'none':'';gh.style.display=done?'':'none';}
+  const manReady=(tmode==='manuale')&&((parseFloat(($('oreMan').value||'').replace(',','.'))||0)>0);
+  const ready=(tmode==='auto'&&state==='done')||manReady;
+  const gb=$('genBtn'),gl=$('genLocked'),gh=$('hint');
+  if(gb){gb.style.display=ready?'':'none';gl.style.display=ready?'none':'';gh.style.display=ready?'':'none';
+    gl.textContent=(tmode==='manuale')?'Inserisci le ore lavorate per generare la scheda':'Premi «Fine» sul timer per generare la scheda a produzione conclusa';}
 }
 function loop(){clearInterval(tick);tick=setInterval(render,250);}
 function mainAction(){
@@ -422,7 +447,7 @@ function safeGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
 function safeDel(k){try{localStorage.removeItem(k);}catch(e){}}
 function collectState(){return{
   denom:$('denom').value,prog:$('prog').value,data:$('data').value,ph:$('ph').value,temp:$('temp').value,
-  operators,state,accMs,segStart,
+  operators,state,accMs,segStart,tmode,oreMan:($('oreMan')?$('oreMan').value:''),
   mp:[...document.querySelectorAll('#mpRows .card')].map(c=>({prodotto:c.querySelector('.mp-prod').value,
     fornitore:c.querySelector('.mp-forn').value,lotto:c.querySelector('.mp-lotto').value,
     um:c.querySelector('.mp-um').value,fusti:JSON.parse(c.dataset.fusti||'[]')})),
@@ -439,6 +464,9 @@ function restoreState(s){
   $('denom').value=s.denom||'';$('prog').value=s.prog||'';if(s.data)$('data').value=s.data;
   $('ph').value=s.ph||'';$('temp').value=s.temp||'102 °C';$('progLbl').textContent=s.prog||'—';
   operators=s.operators||1;$('opVal').textContent=operators;
+  tmode=s.tmode||'auto';if($('oreMan'))$('oreMan').value=s.oreMan||'';
+  $('timerAuto').style.display=tmode==='auto'?'':'none';$('timerMan').style.display=tmode==='manuale'?'':'none';
+  document.querySelector('.tm-auto').classList.toggle('on',tmode==='auto');document.querySelector('.tm-man').classList.toggle('on',tmode==='manuale');
   state=s.state||'idle';accMs=s.accMs||0;segStart=s.segStart||null;
   $('mpRows').innerHTML='';$('pfRows').innerHTML='';
   (s.mp&&s.mp.length?s.mp:[null]).forEach(m=>addMP(m));
@@ -491,7 +519,7 @@ function removeFustoAt(c,i){const a=JSON.parse(c.dataset.fusti||'[]');a.splice(i
 function removePzAt(c,i){const a=JSON.parse(c.dataset.pz||'[]');a.splice(i,1);c.dataset.pz=JSON.stringify(a);paintPz(c);saveState();}
 function showVer(){const el=$('verTag');if(!el)return;
   const standalone=(window.navigator.standalone===true)||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);
-  el.textContent='Produzione v11 · '+(standalone?'App (a tutto schermo)':'Safari');}
+  el.textContent='Produzione v12 · '+(standalone?'App (a tutto schermo)':'Safari');}
 function buildDatalists(){
   const mk=(id,arr)=>{let d=document.getElementById(id);if(!d){d=document.createElement('datalist');d.id=id;document.body.appendChild(d);}d.innerHTML='';(arr||[]).forEach(v=>{const o=document.createElement('option');o.value=v;d.appendChild(o);});};
   mk('dlProdotti',(ANAG.prodotti||[]).map(p=>p.n));mk('dlFornitori',ANAG.fornitori);mk('dlMaterie',ANAG.materie);
@@ -531,8 +559,8 @@ function genExcel(){
   const A=[];
   A.push(["SCHEDA DI LAVORAZIONE E RINTRACCIABILITA'"]);A.push([]);
   A.push(['Denominazione prodotto',denom]);
-  A.push(['N. progressivo produzione',prog,'','Ore lavorate',Number(oreUomo().toFixed(2)),'','Data',dataIt()]);
-  A.push(['Operatori',operators,'','Durata cronometro',fmt(totalMs())]);A.push([]);
+  A.push(['N. progressivo produzione',prog,'','Ore lavorate',Number(oreLavorate().toFixed(2)),'','Data',dataIt()]);
+  A.push(['Operatori',operators,'','Durata cronometro',tmode==='manuale'?'(manuale)':fmt(totalMs())]);A.push([]);
   A.push(['MATERIE PRIME UTILIZZATE']);
   A.push(['N.','PRODOTTO','FORNITORE',"LOTTO D'INGRESSO",'QNT','UM','N. PESATE']);
   mp.forEach(m=>A.push([m.n,m.prod,m.forn,m.lotto,Number((Math.round(m.qnt*1000)/1000)),m.um,m.fusti]));
@@ -542,8 +570,8 @@ function genExcel(){
   A.push([]);A.push(['pH',$('ph').value,'','Temp. pastorizzazione',$('temp').value]);
   A.push([]);A.push(['DATA E FIRMA RESPONSABILE DI PRODUZIONE']);
 
-  const dati={denominazione:denom,progressivo:prog,ore_lavorate:Number(oreUomo().toFixed(2)),
-    operatori:operators,durata:fmt(totalMs()),data:$('data').value,ph:$('ph').value,temp:$('temp').value,
+  const dati={denominazione:denom,progressivo:prog,ore_lavorate:Number(oreLavorate().toFixed(2)),
+    operatori:operators,durata:tmode==='manuale'?'':fmt(totalMs()),data:$('data').value,ph:$('ph').value,temp:$('temp').value,
     materie_prime:mp.map(m=>({prodotto:m.prod,fornitore:m.forn,lotto:m.lotto,qnt:m.qnt,um:m.um,pesate:m.fusti})),
     prodotto_finito:pf.map(p=>({prodotto:p.prod,codice:p.code,formato:p.fmt,modo:p.mode,peso_netto:p.peso,um:p.um,pezzi:p.pezzi,kg_netto:Number(p.kg.toFixed(3)),lotto:p.lotto,scadenza:p.scad}))};
   const ws=XLSX.utils.aoa_to_sheet(A);
