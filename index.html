@@ -278,6 +278,7 @@ function addMP(data){
   c.querySelector('.mp-add').addEventListener('keydown',e=>{if(e.key==='Enter')addFusto('mp'+id);});
   attachAC(c.querySelector('.mp-prod'),()=>ANAG.materie||[]);
   attachAC(c.querySelector('.mp-forn'),()=>ANAG.fornitori||[]);
+  attachAC(c.querySelector('.mp-lotto'),()=>recentLotsFor(c.querySelector('.mp-prod').value));
   if(data){c.querySelector('.mp-prod').value=data.prodotto||'';c.querySelector('.mp-forn').value=data.fornitore||'';
     c.querySelector('.mp-lotto').value=data.lotto||'';const um=c.querySelector('.mp-um');um.value=data.um||'kg';
     c.querySelector('.mp-umlbl').textContent=um.value;c.dataset.fusti=JSON.stringify(data.fusti||[]);paintF(c);}
@@ -447,6 +448,15 @@ function nuovaProduzione(){
   safeDel(STORE_KEY);
   location.reload();
 }
+const LOT_KEY='scalzo_lotti';
+function loadLots(){try{return JSON.parse(safeGet(LOT_KEY))||{};}catch(e){return {};}}
+function saveLotUse(material,lotto){if(!material||!lotto)return;const m=material.trim().toLowerCase();const s=loadLots();
+  s[m]=s[m]||{};s[m][lotto.trim()]=Date.now();safeSet(LOT_KEY,JSON.stringify(s));}
+function recentLotsFor(material){if(!material)return [];const cut=Date.now()-180*86400000;const o=(loadLots()[material.trim().toLowerCase()]||{});
+  return Object.keys(o).filter(l=>o[l]>=cut).sort((a,b)=>o[b]-o[a]);}
+function pruneLots(){const cut=Date.now()-180*86400000;const s=loadLots();let ch=false;
+  for(const m in s){for(const l in s[m]){if(s[m][l]<cut){delete s[m][l];ch=true;}}if(!Object.keys(s[m]).length){delete s[m];ch=true;}}
+  if(ch)safeSet(LOT_KEY,JSON.stringify(s));}
 function attachAC(input, itemsFn){
   const wrap=input.closest('label')||input.parentElement; wrap.style.position='relative';
   let box=null;
@@ -477,7 +487,7 @@ function buildDatalists(){
   const mk=(id,arr)=>{let d=document.getElementById(id);if(!d){d=document.createElement('datalist');d.id=id;document.body.appendChild(d);}d.innerHTML='';(arr||[]).forEach(v=>{const o=document.createElement('option');o.value=v;d.appendChild(o);});};
   mk('dlProdotti',(ANAG.prodotti||[]).map(p=>p.n));mk('dlFornitori',ANAG.fornitori);mk('dlMaterie',ANAG.materie);
 }
-buildDatalists();
+buildDatalists();pruneLots();
 attachAC($('denom'),()=>(ANAG.prodotti||[]).map(p=>p.n));
 (function init(){
   let saved=null;try{saved=JSON.parse(safeGet(STORE_KEY));}catch(e){}
@@ -500,6 +510,7 @@ function genExcel(){
   const mp=[...document.querySelectorAll('#mpRows .card')].map((c,i)=>({n:i+1,prod:c.querySelector('.mp-prod').value,
     forn:c.querySelector('.mp-forn').value,lotto:c.querySelector('.mp-lotto').value,
     qnt:sumF(c),um:c.querySelector('.mp-um').value,fusti:JSON.parse(c.dataset.fusti||'[]').length})).filter(x=>x.prod||x.qnt);
+  mp.forEach(m=>{if(m.prod&&m.lotto)saveLotUse(m.prod,m.lotto);});
   const pf=[...document.querySelectorAll('#pfRows .card')].map(c=>{
     const mode=c.dataset.mode||'vasi',s=c.querySelector('.pf-scad').value;let kg=0,pezzi='',peso='',um='';
     if(mode==='peso'){const q=parseFloat((c.querySelector('.pf-qty').value||'').replace(',','.'))||0;um=c.querySelector('.pf-um2').value;kg=(um==='g')?q/1000:q;}
