@@ -152,9 +152,9 @@
   </header>
 
   <label class="fld denom"><span class="lab">Denominazione prodotto</span>
-    <input id="denom" placeholder="es. Crema vulcanica" autocomplete="off"></label>
+    <input id="denom" placeholder="inizia a scrivere il nome del prodotto" autocomplete="off"></label>
   <div class="row2" style="margin-bottom:4px">
-    <label class="fld"><span class="lab">N. progressivo</span><input id="prog" type="number" inputmode="numeric" placeholder="es. 101"></label>
+    <label class="fld"><span class="lab">N. progressivo</span><input id="prog" type="number" inputmode="numeric" placeholder="numero progressivo"></label>
     <label class="fld"><span class="lab">Data produzione</span><input id="data" type="date"></label>
   </div>
 
@@ -199,8 +199,8 @@
   <section class="sec-c">
     <div class="sec-head"><span class="ix">C</span><h2>Parametri di processo</h2><span class="rule"></span></div>
     <div class="params">
-      <label class="fld tight"><span class="lab">pH</span><input id="ph" inputmode="decimal" placeholder="es. 3.59"></label>
-      <label class="fld tight"><span class="lab">Temp. pastorizzazione</span><input id="temp" placeholder="es. 102 °C" value="102 °C"></label>
+      <label class="fld tight"><span class="lab">pH</span><input id="ph" inputmode="decimal" placeholder="valore pH"></label>
+      <label class="fld tight"><span class="lab">Temp. pastorizzazione</span><input id="temp" placeholder="temperatura" value="102 °C"></label>
     </div>
   </section>
 
@@ -262,10 +262,10 @@ function addMP(data){
   const c=document.createElement('div');c.className='card';c.dataset.fusti='[]';c.id='mp'+id;
   c.innerHTML=`
     <span class="cardnum"></span><button class="del" onclick="delCard(this)">×</button>
-    <label class="fld tight" style="margin-bottom:10px"><span class="lab">Prodotto</span><input class="mp-prod" placeholder="es. peperoncino"></label>
+    <label class="fld tight" style="margin-bottom:10px"><span class="lab">Prodotto</span><input class="mp-prod" placeholder="inizia a scrivere la materia prima"></label>
     <div class="g2" style="margin-bottom:10px">
-      <label class="fld tight"><span class="lab">Fornitore</span><input class="mp-forn" placeholder="es. az. Scalzo"></label>
-      <label class="fld tight"><span class="lab">Lotto ingresso</span><input class="mp-lotto" placeholder="es. 185/26"></label>
+      <label class="fld tight"><span class="lab">Fornitore</span><input class="mp-forn" placeholder="inizia a scrivere il fornitore"></label>
+      <label class="fld tight"><span class="lab">Lotto ingresso</span><input class="mp-lotto" placeholder="numero di lotto"></label>
     </div>
     <label class="fld tight" style="margin-bottom:10px"><span class="lab">Unità di misura</span>
       <select class="mp-um"><option>kg</option><option>pz</option><option>l</option><option>g</option></select></label>
@@ -306,18 +306,18 @@ function addPF(data){
   c.innerHTML=`
     <span class="cardnum"></span><button class="del" onclick="delCard(this)">×</button>
     <div class="pf-prod-row">
-      <label class="fld tight"><span class="lab">Prodotto</span><input class="pf-prod" placeholder="cerca o scrivi nuovo"></label>
+      <label class="fld tight"><span class="lab">Prodotto</span><input class="pf-prod" placeholder="inizia a scrivere il nome del prodotto"></label>
       <label class="fld tight"><span class="lab">Codice</span><input class="pf-code" placeholder="cod."></label>
     </div>
     <div class="newhint">Non in elenco? Scrivi nome e codice a mano.</div>
-    <label class="fld tight" style="margin-bottom:10px"><span class="lab">Formato</span><input class="pf-fmt" placeholder="es. 212 (ml) o Fusto"></label>
+    <label class="fld tight" style="margin-bottom:10px"><span class="lab">Formato</span><input class="pf-fmt" placeholder="inizia a scrivere il formato"></label>
     <div class="pf-mode">
       <button type="button" class="m-vasi on" onclick="setMode('pf${id}','vasi')">A vasi (pezzi)</button>
       <button type="button" class="m-peso" onclick="setMode('pf${id}','peso')">A peso</button>
     </div>
     <div class="only-vasi">
       <div class="peso-row">
-        <label class="fld tight"><span class="lab">Peso netto unitario</span><input class="pf-peso" inputmode="decimal" placeholder="es. 190"></label>
+        <label class="fld tight"><span class="lab">Peso netto unitario</span><input class="pf-peso" inputmode="decimal" placeholder="peso netto unitario"></label>
         <label class="fld tight"><span class="lab">UM</span><select class="pf-um"><option>g</option><option>kg</option></select></label>
       </div>
       <div class="fusto">
@@ -332,12 +332,12 @@ function addPF(data){
     </div>
     <div class="only-peso">
       <div class="peso-row">
-        <label class="fld tight"><span class="lab">Quantità totale (variabile)</span><input class="pf-qty" inputmode="decimal" placeholder="es. 85"></label>
+        <label class="fld tight"><span class="lab">Quantità totale (variabile)</span><input class="pf-qty" inputmode="decimal" placeholder="quantità in kg"></label>
         <label class="fld tight"><span class="lab">UM</span><select class="pf-um2"><option>kg</option><option>g</option><option>l</option></select></label>
       </div>
     </div>
     <div class="g2" style="margin:2px 0 0">
-      <label class="fld tight"><span class="lab">Lotto finito</span><input class="pf-lotto" placeholder="es. 177/26/CV"></label>
+      <label class="fld tight"><span class="lab">Lotto finito</span><input class="pf-lotto" placeholder="lotto prodotto finito"></label>
       <label class="fld tight"><span class="lab">Scadenza</span><input class="pf-scad" type="date"></label>
     </div>
     <div class="kg">Kg netto: <b class="pf-kg">0.000</b></div>`;
@@ -472,7 +472,7 @@ function attachAC(input, itemsFn){
     const q=input.value.trim().toLowerCase();
     let items=(itemsFn()||[]).filter(Boolean);
     if(q) items=items.filter(x=>String(x).toLowerCase().includes(q));
-    items=items.slice(0,8); close();
+    close();
     if(!items.length) return;
     box=document.createElement('div'); box.className='ac-list';
     items.forEach(v=>{const it=document.createElement('div');it.className='ac-item';it.textContent=v;
@@ -491,7 +491,7 @@ function removeFustoAt(c,i){const a=JSON.parse(c.dataset.fusti||'[]');a.splice(i
 function removePzAt(c,i){const a=JSON.parse(c.dataset.pz||'[]');a.splice(i,1);c.dataset.pz=JSON.stringify(a);paintPz(c);saveState();}
 function showVer(){const el=$('verTag');if(!el)return;
   const standalone=(window.navigator.standalone===true)||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);
-  el.textContent='Produzione v10 · '+(standalone?'App (a tutto schermo)':'Safari');}
+  el.textContent='Produzione v11 · '+(standalone?'App (a tutto schermo)':'Safari');}
 function buildDatalists(){
   const mk=(id,arr)=>{let d=document.getElementById(id);if(!d){d=document.createElement('datalist');d.id=id;document.body.appendChild(d);}d.innerHTML='';(arr||[]).forEach(v=>{const o=document.createElement('option');o.value=v;d.appendChild(o);});};
   mk('dlProdotti',(ANAG.prodotti||[]).map(p=>p.n));mk('dlFornitori',ANAG.fornitori);mk('dlMaterie',ANAG.materie);
