@@ -128,7 +128,7 @@
   .card:not(.mode-peso) .only-peso{display:none}
   .newprod{border:1.5px solid var(--plum);background:#fff;color:var(--plum);font-family:inherit;font-weight:700;font-size:.78rem;padding:7px 12px;border-radius:9px;cursor:pointer;min-height:38px}
   .newprod:active{background:var(--plum);color:#fff}
-  .ac-list{position:absolute;left:0;right:0;top:100%;z-index:50;background:#fff;border:1.5px solid var(--line-strong);border-top:none;border-radius:0 0 10px 10px;max-height:240px;overflow:auto;box-shadow:0 10px 22px rgba(0,0,0,.12)}
+  .ac-list{position:absolute;left:0;right:0;top:100%;z-index:50;background:#fff;border:1.5px solid var(--line-strong);border-top:none;border-radius:0 0 10px 10px;max-height:240px;overflow-y:auto;-webkit-overflow-scrolling:touch;box-shadow:0 10px 22px rgba(0,0,0,.12)}
   .ac-item{padding:13px 14px;font-size:.95rem;cursor:pointer;border-bottom:1px solid var(--line)}
   .ac-item:last-child{border-bottom:none}
   .ac-item:active{background:#F4EDE6}
@@ -204,8 +204,9 @@
   </section>
 
   <div class="generate">
-    <button class="gen-btn" onclick="genExcel()">Genera scheda Excel</button>
-    <div class="hint" id="hint">Si scarica il file pronto da salvare nella cartella di produzione</div>
+    <button class="gen-btn" id="genBtn" onclick="genExcel()" style="display:none">Genera scheda Excel</button>
+    <div class="hint" id="genLocked">Premi «Fine» sul timer per generare la scheda a produzione conclusa</div>
+    <div class="hint" id="hint" style="display:none">Si scarica il file pronto da salvare nella cartella di produzione</div>
   </div>
 </div>
 
@@ -239,6 +240,8 @@ function render(){
   if(state==='running'){st.textContent='In corso';sub.textContent='Il tempo viene registrato automaticamente';main.classList.add('btn-pause');main.textContent='Pausa';}
   if(state==='paused'){st.textContent='In pausa';sub.textContent='Riprendi per continuare a contare il tempo';main.classList.add('btn-resume');main.textContent='Riprendi';}
   if(state==='done'){st.textContent='Conclusa';sub.textContent='Tempo bloccato — pronto per la scheda';main.classList.add('btn-start');main.textContent='Riavvia';}
+  const done=(state==='done'),gb=$('genBtn'),gl=$('genLocked'),gh=$('hint');
+  if(gb){gb.style.display=done?'':'none';gl.style.display=done?'none':'';gh.style.display=done?'':'none';}
 }
 function loop(){clearInterval(tick);tick=setInterval(render,250);}
 function mainAction(){
@@ -460,7 +463,8 @@ function pruneLots(){const cut=Date.now()-180*86400000;const s=loadLots();let ch
 function attachAC(input, itemsFn){
   const wrap=input.closest('label')||input.parentElement; wrap.style.position='relative';
   let box=null;
-  function close(){if(box){box.remove();box=null;}}
+  function outside(e){if(box && !wrap.contains(e.target))close();}
+  function close(){if(box){box.remove();box=null;document.removeEventListener('pointerdown',outside,true);}}
   function open(){
     if(input._sel){input._sel=false;return;}
     const q=input.value.trim().toLowerCase();
@@ -470,13 +474,13 @@ function attachAC(input, itemsFn){
     if(!items.length) return;
     box=document.createElement('div'); box.className='ac-list';
     items.forEach(v=>{const it=document.createElement('div');it.className='ac-item';it.textContent=v;
-      it.addEventListener('pointerdown',e=>{e.preventDefault();input._sel=true;input.value=v;input.dispatchEvent(new Event('input',{bubbles:true}));close();});
+      it.addEventListener('click',()=>{input._sel=true;input.value=v;input.dispatchEvent(new Event('input',{bubbles:true}));close();});
       box.appendChild(it);});
     wrap.appendChild(box);
+    document.addEventListener('pointerdown',outside,true);
   }
   input.addEventListener('focus',open);
   input.addEventListener('input',open);
-  input.addEventListener('blur',()=>setTimeout(close,160));
 }
 function renderPills(c,sel,arr,cb){const b=c.querySelector(sel);if(!b)return;b.innerHTML='';
   arr.forEach((v,i)=>{const p=document.createElement('span');p.className='pill';p.innerHTML=v+' <i>×</i>';
@@ -505,6 +509,7 @@ attachAC($('denom'),()=>(ANAG.prodotti||[]).map(p=>p.n));
 
 /* export */
 function genExcel(){
+  if(!confirm('Generare la scheda Excel della produzione?\nControlla di aver inserito tutti i dati: il file verrà scaricato nella cartella di produzione.'))return;
   const denom=($('denom').value||'PRODOTTO').trim(),prog=$('prog').value||'';
   const dataIt=()=>{const d=$('data').value;if(!d)return'';const[y,m,g]=d.split('-');return `${g}/${m}/${y}`;};
   const mp=[...document.querySelectorAll('#mpRows .card')].map((c,i)=>({n:i+1,prod:c.querySelector('.mp-prod').value,
