@@ -1,6 +1,6 @@
 // Service worker — fa funzionare l'app offline mettendo in cache la pagina e la libreria Excel.
 // Quando aggiorni l'app, cambia il numero di versione qui sotto per forzare il refresh.
-const CACHE = 'produzione-scalzo-v9';
+const CACHE = 'produzione-scalzo-v10';
 const PRECACHE = [
   './',
   './index.html',

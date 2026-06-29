@@ -136,6 +136,7 @@
   .pill{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1.5px solid var(--line-strong);border-radius:999px;padding:7px 12px;font-family:var(--mono);font-weight:700;font-size:.9rem;cursor:pointer}
   .pill i{font-style:normal;color:var(--run);font-weight:800;font-size:1rem}
   .pill:active{background:#FBEDE6;border-color:var(--run)}
+  .vtag{text-align:center;font-size:.68rem;color:var(--ink-soft);opacity:.6;margin:14px 0 4px;font-family:var(--mono)}
 </style>
 </head>
 <body>
@@ -208,6 +209,7 @@
     <div class="hint" id="genLocked">Premi «Fine» sul timer per generare la scheda a produzione conclusa</div>
     <div class="hint" id="hint" style="display:none">Si scarica il file pronto da salvare nella cartella di produzione</div>
   </div>
+  <div class="vtag" id="verTag"></div>
 </div>
 
 <script>
@@ -487,11 +489,14 @@ function renderPills(c,sel,arr,cb){const b=c.querySelector(sel);if(!b)return;b.i
     p.addEventListener('click',()=>{if(confirm('Rimuovere '+v+' ?'))cb(i);});b.appendChild(p);});}
 function removeFustoAt(c,i){const a=JSON.parse(c.dataset.fusti||'[]');a.splice(i,1);c.dataset.fusti=JSON.stringify(a);paintF(c);saveState();}
 function removePzAt(c,i){const a=JSON.parse(c.dataset.pz||'[]');a.splice(i,1);c.dataset.pz=JSON.stringify(a);paintPz(c);saveState();}
+function showVer(){const el=$('verTag');if(!el)return;
+  const standalone=(window.navigator.standalone===true)||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);
+  el.textContent='Produzione v10 · '+(standalone?'App (a tutto schermo)':'Safari');}
 function buildDatalists(){
   const mk=(id,arr)=>{let d=document.getElementById(id);if(!d){d=document.createElement('datalist');d.id=id;document.body.appendChild(d);}d.innerHTML='';(arr||[]).forEach(v=>{const o=document.createElement('option');o.value=v;d.appendChild(o);});};
   mk('dlProdotti',(ANAG.prodotti||[]).map(p=>p.n));mk('dlFornitori',ANAG.fornitori);mk('dlMaterie',ANAG.materie);
 }
-buildDatalists();pruneLots();
+buildDatalists();pruneLots();showVer();
 attachAC($('denom'),()=>(ANAG.prodotti||[]).map(p=>p.n));
 (function init(){
   let saved=null;try{saved=JSON.parse(safeGet(STORE_KEY));}catch(e){}
