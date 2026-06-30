@@ -520,7 +520,7 @@ function removeFustoAt(c,i){const a=JSON.parse(c.dataset.fusti||'[]');a.splice(i
 function removePzAt(c,i){const a=JSON.parse(c.dataset.pz||'[]');a.splice(i,1);c.dataset.pz=JSON.stringify(a);paintPz(c);saveState();}
 function showVer(){const el=$('verTag');if(!el)return;
   const standalone=(window.navigator.standalone===true)||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);
-  el.textContent='Produzione v20 · '+(standalone?'App (a tutto schermo)':'Safari');}
+  el.textContent='Produzione v24 · '+(standalone?'App (a tutto schermo)':'Safari');}
 function buildDatalists(){
   const mk=(id,arr)=>{let d=document.getElementById(id);if(!d){d=document.createElement('datalist');d.id=id;document.body.appendChild(d);}d.innerHTML='';(arr||[]).forEach(v=>{const o=document.createElement('option');o.value=v;d.appendChild(o);});};
   mk('dlProdotti',(ANAG.prodotti||[]).map(p=>p.n));mk('dlFornitori',ANAG.fornitori);mk('dlMaterie',ANAG.materie);
@@ -559,20 +559,22 @@ async function genExcel(){
   const denom=denom0||(pf[0]?pf[0].prod:'')||'PRODOTTO';
   try{
     $('hint').textContent='Genero la scheda…';
+    if(typeof ExcelJS==='undefined')throw new Error('Libreria Excel non caricata (serve la connessione alla prima apertura).');
+    if(!window.MODELLO_B64)throw new Error('Modello non caricato: apri l\'app dal sito pubblicato (con modello-b64.js nella stessa cartella), non dal file singolo.');
     const bin=atob(window.MODELLO_B64);const bytes=new Uint8Array(bin.length);
     for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
     const wb=new ExcelJS.Workbook();await wb.xlsx.load(bytes.buffer);
     const ws=wb.getWorksheet('SCHEDA')||wb.worksheets[0];
     const S=(addr,val)=>{ws.getCell(addr).value=(val===''||val===undefined||val===null)?null:val;};
-    S('C5',denom);S('C8',prog);S('E8',Number(oreLavorate().toFixed(2)));S('G8',dataIt());
-    S('C35',$('ph').value);S('G35',$('temp').value);
-    for(let r=13;r<=33;r++){['B','D','F','H','I'].forEach(col=>S(col+r,''));}
-    mp.slice(0,21).forEach((m,i)=>{const r=13+i;S('B'+r,m.prod);S('D'+r,m.forn);S('F'+r,m.lotto);S('H'+r,Number(Math.round(m.qnt*1000)/1000));S('I'+r,m.um);});
-    S('A38','FORMATO');
-    for(let r=40;r<=44;r++){['A','C','D','E','G'].forEach(col=>S(col+r,''));}
-    pf.slice(0,5).forEach((p,i)=>{const r=40+i;S('A'+r,p.fmt);S('C'+r,Number(p.kg.toFixed(3)));S('D'+r,p.mode==='vasi'?p.pezzi:'—');S('E'+r,p.lotto);S('G'+r,p.scad);});
-    for(let r=1;r<=55;r++){for(let c=10;c<=15;c++){ws.getRow(r).getCell(c).value=null;}}
-    if(ws.pageSetup)ws.pageSetup.printArea='A1:I55';
+    S('A9',denom);S('C12',prog);S('E12',Number(oreLavorate().toFixed(2)));S('G12',dataIt());
+    S('C39',$('ph').value);S('G39',$('temp').value);
+    for(let r=17;r<=37;r++){['B','D','F','H','I'].forEach(col=>S(col+r,''));}
+    mp.slice(0,21).forEach((m,i)=>{const r=17+i;S('B'+r,m.prod);S('D'+r,m.forn);S('F'+r,m.lotto);S('H'+r,Number(Math.round(m.qnt*1000)/1000));S('I'+r,m.um);});
+    S('A42','FORMATO');
+    for(let r=44;r<=48;r++){['A','C','D','E','G'].forEach(col=>S(col+r,''));}
+    pf.slice(0,5).forEach((p,i)=>{const r=44+i;S('A'+r,p.fmt);S('C'+r,Number(p.kg.toFixed(3)));S('D'+r,p.mode==='vasi'?p.pezzi:'—');S('E'+r,p.lotto);S('G'+r,p.scad);});
+    for(let r=1;r<=59;r++){for(let c=10;c<=15;c++){ws.getRow(r).getCell(c).value=null;}}
+    if(ws.pageSetup)ws.pageSetup.printArea='A1:I59';
     const dati={denominazione:denom,progressivo:prog,ore_lavorate:Number(oreLavorate().toFixed(2)),
       operatori:operators,durata:tmode==='manuale'?'':fmt(totalMs()),data:$('data').value,ph:$('ph').value,temp:$('temp').value,
       materie_prime:mp.map(m=>({prodotto:m.prod,fornitore:m.forn,lotto:m.lotto,qnt:m.qnt,um:m.um,pesate:m.fusti})),
