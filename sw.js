@@ -1,6 +1,6 @@
 // Service worker — fa funzionare l'app offline mettendo in cache la pagina e la libreria Excel.
 // Quando aggiorni l'app, cambia il numero di versione qui sotto per forzare il refresh.
-const CACHE = 'produzione-scalzo-v14';
+const CACHE = 'produzione-scalzo-v16';
 const PRECACHE = [
   './',
   './index.html',
@@ -8,7 +8,8 @@ const PRECACHE = [
   './icon-180.png',
   './icon-192.png',
   './icon-512.png',
-  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
+  'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js',
+  './modello-b64.js'
 ];
 
 self.addEventListener('install', (e) => {
