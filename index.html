@@ -520,7 +520,7 @@ function removeFustoAt(c,i){const a=JSON.parse(c.dataset.fusti||'[]');a.splice(i
 function removePzAt(c,i){const a=JSON.parse(c.dataset.pz||'[]');a.splice(i,1);c.dataset.pz=JSON.stringify(a);paintPz(c);saveState();}
 function showVer(){const el=$('verTag');if(!el)return;
   const standalone=(window.navigator.standalone===true)||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);
-  el.textContent='Produzione v17 · '+(standalone?'App (a tutto schermo)':'Safari');}
+  el.textContent='Produzione v18 · '+(standalone?'App (a tutto schermo)':'Safari');}
 function buildDatalists(){
   const mk=(id,arr)=>{let d=document.getElementById(id);if(!d){d=document.createElement('datalist');d.id=id;document.body.appendChild(d);}d.innerHTML='';(arr||[]).forEach(v=>{const o=document.createElement('option');o.value=v;d.appendChild(o);});};
   mk('dlProdotti',(ANAG.prodotti||[]).map(p=>p.n));mk('dlFornitori',ANAG.fornitori);mk('dlMaterie',ANAG.materie);
@@ -572,7 +572,7 @@ async function genExcel(){
     for(let r=40;r<=44;r++){['A','C','D','E','G'].forEach(col=>S(col+r,''));}
     pf.slice(0,5).forEach((p,i)=>{const r=40+i;S('A'+r,p.fmt);S('C'+r,Number(p.kg.toFixed(3)));S('D'+r,p.mode==='vasi'?p.pezzi:'—');S('E'+r,p.lotto);S('G'+r,p.scad);});
     for(let r=1;r<=55;r++){for(let c=10;c<=15;c++){ws.getRow(r).getCell(c).value=null;}}
-    if(ws.pageSetup)ws.pageSetup.printArea='A1:I55';
+    const ps=ws.pageSetup;ps.printArea='A1:I55';ps.orientation='portrait';ps.fitToPage=true;ps.fitToWidth=1;ps.fitToHeight=0;
     const dati={denominazione:denom,progressivo:prog,ore_lavorate:Number(oreLavorate().toFixed(2)),
       operatori:operators,durata:tmode==='manuale'?'':fmt(totalMs()),data:$('data').value,ph:$('ph').value,temp:$('temp').value,
       materie_prime:mp.map(m=>({prodotto:m.prod,fornitore:m.forn,lotto:m.lotto,qnt:m.qnt,um:m.um,pesate:m.fusti})),
