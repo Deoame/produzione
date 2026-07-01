@@ -133,6 +133,10 @@
   .ac-item{padding:13px 14px;font-size:.95rem;cursor:pointer;border-bottom:1px solid var(--line)}
   .ac-item:last-child{border-bottom:none}
   .ac-item:active{background:#F4EDE6}
+  .resa-toggle{margin-top:10px;background:none;border:none;color:#8a5a2b;font-weight:600;font-size:.9rem;padding:4px 0;cursor:pointer}
+  .resa-block{margin-top:6px;padding:12px;border:1.5px dashed #d8c3a6;border-radius:12px;background:#fdf9f3}
+  .resa-pct{margin-top:8px;font-size:.9rem;color:#6b4f2a}
+  .resa-pct b{font-family:var(--mono)}
   .pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
   .pill{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1.5px solid var(--line-strong);border-radius:999px;padding:7px 12px;font-family:var(--mono);font-weight:700;font-size:.9rem;cursor:pointer}
   .pill i{font-style:normal;color:var(--run);font-weight:800;font-size:1rem}
@@ -289,7 +293,7 @@ function changeOp(d){const n=Math.max(1,operators+d);if(n===operators)return;
 let mpId=0;
 function addMP(data){
   mpId++;const id=mpId;
-  const c=document.createElement('div');c.className='card';c.dataset.fusti='[]';c.id='mp'+id;
+  const c=document.createElement('div');c.className='card';c.dataset.fusti='[]';c.dataset.reso='[]';c.dataset.resa='0';c.id='mp'+id;
   c.innerHTML=`
     <span class="cardnum"></span><button class="del" onclick="delCard(this)">×</button>
     <label class="fld tight" style="margin-bottom:10px"><span class="lab">Prodotto</span><input class="mp-prod" placeholder="inizia a scrivere la materia prima"></label>
@@ -307,23 +311,58 @@ function addMP(data){
         <button class="addq" onclick="addFusto('mp${id}')">+ Aggiungi</button>
       </div>
       <div class="pills mp-pills"></div>
+    </div>
+    <button type="button" class="resa-toggle" onclick="toggleResa('mp${id}')">＋ Resa / lavorazione (es. denocciolatura)</button>
+    <div class="resa-block" style="display:none">
+      <label class="fld tight" style="margin:2px 0 10px"><span class="lab">Nome dopo lavorazione</span><input class="mp-reso-name" placeholder="es. Amarene denocciolate"></label>
+      <div class="fusto">
+        <div class="fusto-total"><span class="lab">Dopo lavorazione</span>
+          <span class="val"><b class="mp-rtot">0</b> <span class="mp-umlbl2">kg</span> <span class="cnt mp-rcnt"></span></span></div>
+        <div class="fusto-add">
+          <input class="mp-radd" inputmode="decimal" placeholder="quantità dopo lavorazione">
+          <button class="addq" onclick="addReso('mp${id}')">+ Aggiungi</button>
+        </div>
+        <div class="pills mp-rpills"></div>
+        <div class="resa-pct">Resa: <b class="mp-resapct">—</b></div>
+      </div>
     </div>`;
   $('mpRows').appendChild(c);
-  c.querySelector('.mp-um').addEventListener('change',e=>{c.querySelector('.mp-umlbl').textContent=e.target.value;saveState();});
+  c.querySelector('.mp-um').addEventListener('change',e=>{c.querySelector('.mp-umlbl').textContent=e.target.value;const u2=c.querySelector('.mp-umlbl2');if(u2)u2.textContent=e.target.value;saveState();});
   c.querySelector('.mp-add').addEventListener('keydown',e=>{if(e.key==='Enter')addFusto('mp'+id);});
+  c.querySelector('.mp-radd').addEventListener('keydown',e=>{if(e.key==='Enter')addReso('mp'+id);});
+  c.querySelector('.mp-reso-name').addEventListener('input',saveState);
   attachAC(c.querySelector('.mp-prod'),()=>ANAG.materie||[]);
   attachAC(c.querySelector('.mp-forn'),()=>ANAG.fornitori||[]);
+  attachAC(c.querySelector('.mp-reso-name'),()=>ANAG.materie||[]);
   attachAC(c.querySelector('.mp-lotto'),()=>recentLotsFor(c.querySelector('.mp-prod').value));
   if(data){c.querySelector('.mp-prod').value=data.prodotto||'';c.querySelector('.mp-forn').value=data.fornitore||'';
     c.querySelector('.mp-lotto').value=data.lotto||'';const um=c.querySelector('.mp-um');um.value=data.um||'kg';
-    c.querySelector('.mp-umlbl').textContent=um.value;c.dataset.fusti=JSON.stringify(data.fusti||[]);paintF(c);}
+    c.querySelector('.mp-umlbl').textContent=um.value;c.querySelector('.mp-umlbl2').textContent=um.value;
+    c.dataset.fusti=JSON.stringify(data.fusti||[]);paintF(c);
+    c.dataset.reso=JSON.stringify(data.reso||[]);c.querySelector('.mp-reso-name').value=data.resoName||'';
+    if(data.resa){c.dataset.resa='1';c.querySelector('.resa-block').style.display='';c.querySelector('.resa-toggle').textContent='– Togli resa / lavorazione';}
+    paintR(c);}
   renum();saveState();
 }
 function sumF(c){const a=JSON.parse(c.dataset.fusti||'[]');return a.reduce((s,x)=>s+x,0);}
 function paintF(c){const a=JSON.parse(c.dataset.fusti||'[]');const t=sumF(c);
   c.querySelector('.mp-tot').textContent=(Math.round(t*1000)/1000);
   c.querySelector('.mp-cnt').textContent=a.length?`· ${a.length} pesat${a.length>1?'e':'a'}`:'';
-  renderPills(c,'.mp-pills',a,(i)=>removeFustoAt(c,i));}
+  renderPills(c,'.mp-pills',a,(i)=>removeFustoAt(c,i));updResaPct(c);}
+function sumR(c){return JSON.parse(c.dataset.reso||'[]').reduce((s,x)=>s+x,0);}
+function updResaPct(c){const el=c.querySelector('.mp-resapct');if(!el)return;const f=sumF(c),r=sumR(c);
+  el.textContent=(f>0&&r>0)?(Math.round(r/f*1000)/10)+'% (calo '+(Math.round((f-r)*1000)/1000)+' '+(c.querySelector('.mp-um').value)+')':'—';}
+function paintR(c){const a=JSON.parse(c.dataset.reso||'[]');const t=a.reduce((s,x)=>s+x,0);
+  const tot=c.querySelector('.mp-rtot');if(tot)tot.textContent=(Math.round(t*1000)/1000);
+  const cnt=c.querySelector('.mp-rcnt');if(cnt)cnt.textContent=a.length?`· ${a.length} pesat${a.length>1?'e':'a'}`:'';
+  renderPills(c,'.mp-rpills',a,(i)=>removeResoAt(c,i));updResaPct(c);}
+function addReso(cid){const c=$(cid),inp=c.querySelector('.mp-radd'),v=parseFloat((inp.value||'').replace(',','.'));
+  if(!isFinite(v)||v<=0){inp.focus();return;}const a=JSON.parse(c.dataset.reso||'[]');a.push(v);c.dataset.reso=JSON.stringify(a);inp.value='';paintR(c);inp.focus();saveState();}
+function removeResoAt(c,i){const a=JSON.parse(c.dataset.reso||'[]');a.splice(i,1);c.dataset.reso=JSON.stringify(a);paintR(c);saveState();}
+function toggleResa(cid){const c=$(cid);const on=c.dataset.resa!=='1';c.dataset.resa=on?'1':'0';
+  const blk=c.querySelector('.resa-block');if(blk)blk.style.display=on?'':'none';
+  const btn=c.querySelector('.resa-toggle');if(btn)btn.textContent=on?'– Togli resa / lavorazione':'＋ Resa / lavorazione (es. denocciolatura)';
+  paintR(c);saveState();}
 function addFusto(cid){const c=$(cid),inp=c.querySelector('.mp-add'),v=parseFloat((inp.value||'').replace(',','.'));
   if(!isFinite(v)||v<=0){inp.focus();return;}const a=JSON.parse(c.dataset.fusti||'[]');a.push(v);c.dataset.fusti=JSON.stringify(a);inp.value='';paintF(c);inp.focus();saveState();}
 function undoFusto(cid){const c=$(cid);const a=JSON.parse(c.dataset.fusti||'[]');a.pop();c.dataset.fusti=JSON.stringify(a);paintF(c);saveState();}
@@ -455,7 +494,8 @@ function collectState(){return{
   operators,state,accMs,segStart,puH,segs,tmode,oreMan:($('oreMan')?$('oreMan').value:''),
   mp:[...document.querySelectorAll('#mpRows .card')].map(c=>({prodotto:c.querySelector('.mp-prod').value,
     fornitore:c.querySelector('.mp-forn').value,lotto:c.querySelector('.mp-lotto').value,
-    um:c.querySelector('.mp-um').value,fusti:JSON.parse(c.dataset.fusti||'[]')})),
+    um:c.querySelector('.mp-um').value,fusti:JSON.parse(c.dataset.fusti||'[]'),
+    resa:(c.dataset.resa==='1'),resoName:(c.querySelector('.mp-reso-name')||{}).value||'',reso:JSON.parse(c.dataset.reso||'[]')})),
   pf:[...document.querySelectorAll('#pfRows .card')].map(c=>({prod:c.querySelector('.pf-prod').value,
     code:c.querySelector('.pf-code').value,fmt:c.querySelector('.pf-fmt').value,mode:c.dataset.mode||'vasi',
     peso:c.querySelector('.pf-peso').value,um:c.querySelector('.pf-um').value,
@@ -524,7 +564,7 @@ function removeFustoAt(c,i){const a=JSON.parse(c.dataset.fusti||'[]');a.splice(i
 function removePzAt(c,i){const a=JSON.parse(c.dataset.pz||'[]');a.splice(i,1);c.dataset.pz=JSON.stringify(a);paintPz(c);saveState();}
 function showVer(){const el=$('verTag');if(!el)return;
   const standalone=(window.navigator.standalone===true)||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);
-  el.textContent='Produzione v25 · '+(standalone?'App (a tutto schermo)':'Safari');}
+  el.textContent='Produzione v26 · '+(standalone?'App (a tutto schermo)':'Safari');}
 function buildDatalists(){
   const mk=(id,arr)=>{let d=document.getElementById(id);if(!d){d=document.createElement('datalist');d.id=id;document.body.appendChild(d);}d.innerHTML='';(arr||[]).forEach(v=>{const o=document.createElement('option');o.value=v;d.appendChild(o);});};
   mk('dlProdotti',(ANAG.prodotti||[]).map(p=>p.n));mk('dlFornitori',ANAG.fornitori);mk('dlMaterie',ANAG.materie);
@@ -550,10 +590,17 @@ async function genExcel(){
   if(!confirm('Generare la scheda ufficiale della produzione?\nControlla di aver inserito tutti i dati: il file verrà scaricato nella cartella di produzione.'))return;
   const denom0=($('denom').value||'').trim(), prog=$('prog').value||'';
   const dataIt=()=>{const d=$('data').value;if(!d)return'';const[y,m,g]=d.split('-');return `${g}/${m}/${y}`;};
-  const mp=[...document.querySelectorAll('#mpRows .card')].map((c,i)=>({n:i+1,prod:c.querySelector('.mp-prod').value,
-    forn:c.querySelector('.mp-forn').value,lotto:c.querySelector('.mp-lotto').value,
-    qnt:sumF(c),um:c.querySelector('.mp-um').value,fusti:JSON.parse(c.dataset.fusti||'[]').length})).filter(x=>x.prod||x.qnt);
-  mp.forEach(m=>{if(m.prod&&m.lotto)saveLotUse(m.prod,m.lotto);});
+  const mp=[...document.querySelectorAll('#mpRows .card')].flatMap((c)=>{
+    const prod=c.querySelector('.mp-prod').value,forn=c.querySelector('.mp-forn').value,
+      lotto=c.querySelector('.mp-lotto').value,um=c.querySelector('.mp-um').value;const rows=[];
+    const qF=sumF(c),nF=JSON.parse(c.dataset.fusti||'[]').length;
+    if(prod||qF)rows.push({prod,forn,lotto,qnt:qF,um,fusti:nF});
+    if(c.dataset.resa==='1'){const rn=(c.querySelector('.mp-reso-name')||{}).value||'',qR=sumR(c);
+      if(rn||qR)rows.push({prod:rn,forn,lotto,qnt:qR,um,fusti:JSON.parse(c.dataset.reso||'[]').length,reso:true});}
+    return rows;
+  }).filter(x=>x.prod||x.qnt);
+  mp.forEach((m,i)=>m.n=i+1);
+  mp.forEach(m=>{if(m.prod&&m.lotto&&!m.reso)saveLotUse(m.prod,m.lotto);});
   const pf=[...document.querySelectorAll('#pfRows .card')].map(c=>{
     const mode=c.dataset.mode||'vasi',s=c.querySelector('.pf-scad').value;let kg=0,pezzi='',peso='',um='';
     if(mode==='peso'){const q=parseFloat((c.querySelector('.pf-qty').value||'').replace(',','.'))||0;um=c.querySelector('.pf-um2').value;kg=(um==='g')?q/1000:q;}
